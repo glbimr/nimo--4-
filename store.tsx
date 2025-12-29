@@ -43,7 +43,6 @@ interface AppContextType {
   moveTask: (taskId: string, newStatus: TaskStatus) => void;
   addMessage: (text: string, recipientId?: string, attachments?: Attachment[]) => void;
   createGroup: (name: string, memberIds: string[]) => Promise<string | null>;
-  deleteGroup: (id: string) => Promise<void>;
   addProject: (name: string, description: string) => void;
   updateProject: (p: Project) => void;
   deleteProject: (id: string) => Promise<void>;
@@ -584,12 +583,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return newGroupId;
   };
 
-  const deleteGroup = async (id: string) => {
-    const { error } = await supabase.from('groups').delete().eq('id', id);
-    if (error) console.error("Error deleting group:", error);
-    // Optimistic update handled by subscription ('DELETE' event)
-  };
-
   const addProject = async (name: string, description: string) => {
     const newProjectId = 'p-' + Date.now();
     // Use only schema-defined columns to prevent errors
@@ -1105,7 +1098,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       currentUser, users, projects, tasks, messages, groups, notifications, incomingCall, isInCall, activeCallData,
       localStream, remoteStreams, isScreenSharing, isMicOn, isCameraOn, hasAudioDevice, hasVideoDevice,
       deletedMessageIds, clearChatHistory,
-      login, logout, addUser, updateUser, deleteUser, addTask, updateTask, deleteTask, moveTask, addMessage, createGroup, deleteGroup, addProject, updateProject, deleteProject,
+      login, logout, addUser, updateUser, deleteUser, addTask, updateTask, deleteTask, moveTask, addMessage, createGroup, addProject, updateProject, deleteProject,
       triggerNotification, markNotificationRead, clearNotifications, markChatRead, getUnreadCount, totalUnreadChatCount,
       startCall, startGroupCall, addToCall, acceptIncomingCall, rejectIncomingCall, endCall, toggleScreenShare, toggleMic, toggleCamera
     }}>

@@ -12,7 +12,7 @@ import { Modal } from '../components/Modal';
 
 export const Communication: React.FC = () => {
   const {
-    messages, addMessage, currentUser, users, groups, createGroup, deleteGroup, markChatRead, getUnreadCount,
+    messages, addMessage, currentUser, users, groups, createGroup, markChatRead, getUnreadCount,
     startCall, startGroupCall, addToCall, endCall, isInCall, activeCallData, localStream, remoteStreams, isScreenSharing, toggleScreenShare,
     isMicOn, isCameraOn, toggleMic, deletedMessageIds, clearChatHistory, hasAudioDevice
   } = useApp();
@@ -167,28 +167,9 @@ export const Communication: React.FC = () => {
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
-
-    const group = groups.find(g => g.id === chatId);
-    // If it's a group and I am the creator, delete it globally for everyone
-    if (group && group.createdBy === currentUser?.id) {
-      if (confirm(`Are you sure you want to permanently delete the group "${group.name}" for all members?`)) {
-        await deleteGroup(chatId);
-        if (selectedChat?.id === chatId) setSelectedChat(null);
-      }
-      setActiveMenuId(null);
-      setActiveHeaderMenu(false);
-      return;
-    }
-
     await clearChatHistory(chatId);
-
-    // Remove from manual list and add to hidden list to ensure it disappears from view
-    setManualChatIds(prev => prev.filter(id => id !== chatId));
-    setHiddenChatIds(prev => [...prev, chatId]);
-
-    if (selectedChat?.id === chatId) {
-      setSelectedChat(null);
-    }
+    // Optional: Hide after delete
+    // setHiddenChatIds(prev => [...prev, chatId]);
     setActiveMenuId(null);
     setActiveHeaderMenu(false);
   };
@@ -322,6 +303,7 @@ export const Communication: React.FC = () => {
 
   // --- Call Interface Component ---
   const CallInterface = () => {
+    const mainStageRef = useRef<HTMLDivElement>(null);
     // Determine the main "Spotlight" user
     // Priority: Pinned User > Someone with Video (Screen Sharing or Camera) > First Remote
     let spotlightUserId: string | null = pinnedUserId;
@@ -426,7 +408,7 @@ export const Communication: React.FC = () => {
             // --- Standard/Fullscreen View ---
             <>
               {/* 1. Main Stage (Spotlight) */}
-              <div className="flex-1 bg-black relative flex items-center justify-center overflow-hidden">
+              <div ref={mainStageRef} className="flex-1 bg-black relative flex items-center justify-center overflow-hidden">
                 {spotlightUser ? (
                   <div className="w-full h-full relative">
                     {/* ALWAYS Render Video Player if stream exists to ensure Audio plays */}
@@ -449,16 +431,31 @@ export const Communication: React.FC = () => {
                       {spotlightUser?.name || 'Unknown'} {isLocalPinned && '(You)'}
                     </div>
 
-                    {/* Unpin Button for Main Stage (if pinned) */}
-                    {pinnedUserId && (
+                    {/* Unpin & Fullscreen Buttons */}
+                    <div className="absolute top-20 right-4 flex flex-col space-y-2 z-30">
+                      {pinnedUserId && (
+                        <button
+                          onClick={() => setPinnedUserId(null)}
+                          className="p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-sm transition-colors"
+                          title="Unpin"
+                        >
+                          <PinOff size={20} />
+                        </button>
+                      )}
                       <button
-                        onClick={() => setPinnedUserId(null)}
-                        className="absolute top-20 right-4 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full z-30 backdrop-blur-sm"
-                        title="Unpin"
+                        onClick={() => {
+                          if (document.fullscreenElement) {
+                            document.exitFullscreen().catch(err => console.error(err));
+                          } else {
+                            mainStageRef.current?.requestFullscreen().catch(err => console.error(err));
+                          }
+                        }}
+                        className="p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-sm transition-colors md:hidden"
+                        title="Full Screen"
                       >
-                        <PinOff size={20} />
+                        <Maximize2 size={20} />
                       </button>
-                    )}
+                    </div>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-slate-500">
@@ -589,54 +586,57 @@ export const Communication: React.FC = () => {
       onClose={() => setIsInviteModalOpen(false)}
       title="Add Member to Call"
       maxWidth="max-w-xl"
-      className="h-[500px]"
-      noScroll
+      className="h-[550px]"
+      noScroll={true}
     >
-      <div className="flex flex-col h-full p-6 space-y-4">
+      <div className="flex flex-col h-full p-6 space-y-5">
         <div className="relative shrink-0">
           <Search size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
           <input
             type="text"
-            placeholder="Search members..."
-            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-base"
+            placeholder="Search for people to invite..."
+            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-base shadow-sm"
             autoFocus
           />
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2">
           {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).map(user => (
-            <div key={user.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
+            <div key={user.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 hover:border-indigo-100 transition-all group">
               <div className="flex items-center min-w-0">
-                <div className="relative mr-3">
-                  <img src={user.avatar} className="w-10 h-10 rounded-full border border-slate-200" />
-                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${user.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                <div className="relative mr-4 shrink-0">
+                  <img src={user.avatar} className="w-12 h-12 rounded-full border border-slate-200" alt={user.name} />
+                  <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${user.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div>
                 </div>
-                <div className="truncate">
-                  <div className="font-bold text-slate-800 text-sm truncate">{user.name}</div>
-                  <div className="text-xs text-slate-500 truncate">@{user.username}</div>
+                <div className="flex flex-col min-w-0">
+                  <span className="font-bold text-slate-800 text-sm truncate">{user.name}</span>
+                  <span className="text-xs text-slate-500 truncate">@{user.username || 'user'}</span>
                 </div>
               </div>
               <button
                 onClick={() => handleInviteUser(user.id)}
-                className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm"
-                title="Call"
+                className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors flex items-center shadow-sm shrink-0"
+                title="Call User"
               >
-                <Phone size={18} />
+                <Phone size={18} className="mr-2" />
+                <span className="text-xs font-bold uppercase">Call</span>
               </button>
             </div>
           ))}
+
           {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).length === 0 && (
-            <div className="flex flex-col items-center justify-center h-40 text-center text-slate-400">
-              <UserPlus size={32} className="mb-2 opacity-50" />
-              <span className="text-sm">No other users available to add.</span>
+            <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+              <Users size={40} className="mb-3 opacity-20" />
+              <p className="font-medium text-sm">No other users available to add.</p>
+              <p className="text-xs opacity-70 mt-1">Everyone is already here!</p>
             </div>
           )}
         </div>
 
-        <div className="shrink-0 pt-4 border-t border-slate-100 flex justify-end">
+        <div className="shrink-0 pt-3 border-t border-slate-100 flex justify-end">
           <button
             onClick={() => setIsInviteModalOpen(false)}
-            className="px-5 py-2 text-slate-500 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+            className="px-6 py-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition-colors font-medium"
           >
             Close
           </button>
