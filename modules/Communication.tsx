@@ -159,6 +159,7 @@ export const Communication: React.FC = () => {
   const handleHideChat = (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     setHiddenChatIds(prev => [...prev, chatId]);
+    setManualChatIds(prev => prev.filter(id => id !== chatId));
     if (selectedChat?.id === chatId) {
       setSelectedChat(null);
     }
@@ -168,8 +169,8 @@ export const Communication: React.FC = () => {
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
     await clearChatHistory(chatId);
-    // Optional: Hide after delete
-    // setHiddenChatIds(prev => [...prev, chatId]);
+    setHiddenChatIds(prev => [...prev, chatId]);
+    setManualChatIds(prev => prev.filter(id => id !== chatId));
     setActiveMenuId(null);
     setActiveHeaderMenu(false);
   };

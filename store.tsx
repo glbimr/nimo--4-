@@ -1047,14 +1047,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           video: {
             // @ts-ignore
             cursor: 'always',
-            frameRate: { ideal: 30, max: 60 }
+            height: { ideal: 1080 },
+            frameRate: { ideal: 24, max: 60 }
           }
         });
         const screenTrack = displayStream.getVideoTracks()[0];
 
-        // Optimize for real-time motion and smoothness to reduce latency
+        // Optimize for "Best Quality" (sharpness/detail) to fix blur
         if ('contentHint' in screenTrack) {
-          (screenTrack as any).contentHint = 'motion';
+          (screenTrack as any).contentHint = 'detail';
         }
 
         // If camera is on, stop it first (mutually exclusive video track for simplicity)
