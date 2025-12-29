@@ -140,6 +140,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     assigneeId: t.assignee_id,
     dueDate: t.due_date,
     order: t.order,
+    subtasks: t.subtasks || [],
+    attachments: t.attachments || [],
+    comments: t.comments || [],
     createdAt: t.created_at
   });
   const mapProjectFromDB = (p: any): Project => ({

@@ -1,24 +1,41 @@
 import React, { useState } from 'react';
 import { useApp } from '../store';
-import { UserRole, User, ProjectAccessLevel } from '../types';
-import { Trash2, UserPlus, Shield, User as UserIcon, Settings, Lock, Search, KeyRound, LayoutGrid, Eye, EyeOff } from 'lucide-react';
+import { UserRole, User, ProjectAccessLevel, Project } from '../types';
+import { Trash2, UserPlus, Shield, User as UserIcon, Settings, Lock, Search, KeyRound, LayoutGrid, Eye, EyeOff, FolderPlus, Folder, PenLine, Users as UsersIcon } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
 export const AdminPanel: React.FC = () => {
-  const { users, projects, addUser, updateUser, deleteUser, currentUser } = useApp();
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'account' | 'permissions'>('account');
+  const {
+    users, projects, currentUser,
+    addUser, updateUser, deleteUser,
+    addProject, updateProject, deleteProject
+  } = useApp();
 
-  // Form State
+  const [activeSection, setActiveSection] = useState<'users' | 'projects'>('users');
+
+  // --- User Management State ---
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [userSearchTerm, setUserSearchTerm] = useState('');
+  const [userModalTab, setUserModalTab] = useState<'account' | 'permissions'>('account');
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+
+  const [userFormData, setUserFormData] = useState({
     name: '',
     username: '',
     password: '',
     role: UserRole.MEMBER,
     projectAccess: {} as Record<string, ProjectAccessLevel>
+  });
+
+  // --- Project Management State ---
+  const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [projectSearchTerm, setProjectSearchTerm] = useState('');
+
+  const [projectFormData, setProjectFormData] = useState({
+    name: '',
+    description: ''
   });
 
   if (currentUser?.role !== UserRole.ADMIN) {
@@ -29,199 +46,342 @@ export const AdminPanel: React.FC = () => {
     );
   }
 
-  const openAddModal = () => {
+  // --- User Actions ---
+  const openAddUserModal = () => {
     setEditingUser(null);
-    setFormData({
+    setUserFormData({
       name: '',
       username: '',
       password: '',
       role: UserRole.MEMBER,
       projectAccess: projects.reduce((acc, p) => ({ ...acc, [p.id]: 'read' }), {})
     });
-    setActiveTab('account');
-    setIsModalOpen(true);
+    setUserModalTab('account');
+    setIsUserModalOpen(true);
   };
 
-  const openEditModal = (user: User) => {
+  const openEditUserModal = (user: User) => {
     setEditingUser(user);
-    // Ensure all projects have an entry, defaulting to 'none' if missing
     const access = { ...user.projectAccess };
     projects.forEach(p => {
       if (!access[p.id]) access[p.id] = 'none';
     });
 
-    setFormData({
+    setUserFormData({
       name: user.name,
       username: user.username,
       password: user.password,
       role: user.role,
       projectAccess: access
     });
-    setActiveTab('account');
-    setIsModalOpen(true);
+    setUserModalTab('account');
+    setIsUserModalOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleUserSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.username || !formData.password) return;
+    if (!userFormData.name || !userFormData.username || !userFormData.password) return;
 
     if (editingUser) {
       updateUser({
         ...editingUser,
-        name: formData.name,
-        username: formData.username,
-        password: formData.password,
-        role: formData.role,
-        projectAccess: formData.projectAccess
+        name: userFormData.name,
+        username: userFormData.username,
+        password: userFormData.password,
+        role: userFormData.role,
+        projectAccess: userFormData.projectAccess
       });
     } else {
       addUser({
         id: crypto.randomUUID(),
-        name: formData.name,
-        username: formData.username,
-        password: formData.password,
-        role: formData.role,
-        avatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${formData.username}`,
-        projectAccess: formData.projectAccess,
+        name: userFormData.name,
+        username: userFormData.username,
+        password: userFormData.password,
+        role: userFormData.role,
+        avatar: `https://api.dicebear.com/9.x/avataaars/svg?seed=${userFormData.username}`,
+        projectAccess: userFormData.projectAccess,
         isOnline: false
       });
     }
-    setIsModalOpen(false);
+    setIsUserModalOpen(false);
   };
 
   const handleAccessChange = (projectId: string, level: ProjectAccessLevel) => {
-    setFormData(prev => ({
+    setUserFormData(prev => ({
       ...prev,
       projectAccess: { ...prev.projectAccess, [projectId]: level }
     }));
   };
 
-  // Filter users based on search term
+  // --- Project Actions ---
+  const openAddProjectModal = () => {
+    setEditingProject(null);
+    setProjectFormData({ name: '', description: '' });
+    setIsProjectModalOpen(true);
+  };
+
+  const openEditProjectModal = (project: Project) => {
+    setEditingProject(project);
+    setProjectFormData({
+      name: project.name,
+      description: project.description
+    });
+    setIsProjectModalOpen(true);
+  };
+
+  const handleProjectSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!projectFormData.name) return;
+
+    if (editingProject) {
+      updateProject({
+        ...editingProject,
+        name: projectFormData.name,
+        description: projectFormData.description
+      });
+    } else {
+      addProject(projectFormData.name, projectFormData.description);
+    }
+    setIsProjectModalOpen(false);
+  };
+
+  // --- Filtering ---
   const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+    user.name.toLowerCase().includes(userSearchTerm.toLowerCase()) ||
+    user.username.toLowerCase().includes(userSearchTerm.toLowerCase())
+  );
+
+  const filteredProjects = projects.filter(project =>
+    project.name.toLowerCase().includes(projectSearchTerm.toLowerCase()) ||
+    project.description.toLowerCase().includes(projectSearchTerm.toLowerCase())
   );
 
   return (
-    <div className="w-full p-4 md:p-6 pb-24 md:pb-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
-        <h1 className="text-xl md:text-2xl font-bold text-slate-800 truncate">User Management</h1>
+    <div className="w-full p-4 md:p-6 pb-24 md:pb-6 flex flex-col h-full overflow-hidden">
+      {/* Top Header & Tabs */}
+      <div className="flex flex-col mb-6 shrink-0">
+        <h1 className="text-xl md:text-2xl font-bold text-slate-800 mb-4">Administration</h1>
 
-        <div className="flex w-full md:w-auto space-x-2">
-          <div className="relative flex-1 md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input
-              type="text"
-              placeholder="Search users..."
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
-
+        <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg w-fit">
           <button
-            onClick={openAddModal}
-            className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors shadow-sm shrink-0"
+            onClick={() => setActiveSection('users')}
+            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${activeSection === 'users'
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
           >
-            <UserPlus size={18} className="mr-0 md:mr-2" />
-            <span className="hidden md:inline">Add User</span>
-            <span className="md:hidden">Add</span>
+            <UsersIcon size={16} className="mr-2" />
+            Users
+          </button>
+          <button
+            onClick={() => setActiveSection('projects')}
+            className={`flex items-center px-4 py-2 rounded-md text-sm font-medium transition-all ${activeSection === 'projects'
+              ? 'bg-white text-indigo-600 shadow-sm'
+              : 'text-slate-500 hover:text-slate-700'
+              }`}
+          >
+            <LayoutGrid size={16} className="mr-2" />
+            Projects
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden w-full">
-        <div className="w-full">
-          <table className="w-full text-left text-sm table-fixed md:table-auto">
-            <thead className="bg-slate-50 border-b border-slate-100">
-              <tr>
-                <th className="px-3 py-3 md:px-6 md:py-4 font-semibold text-slate-700 w-[45%] md:w-auto">User</th>
-                <th className="hidden md:table-cell px-6 py-4 font-semibold text-slate-700">Username</th>
-                <th className="px-3 py-3 md:px-6 md:py-4 font-semibold text-slate-700 w-[25%] md:w-auto">Role</th>
-                <th className="px-3 py-3 md:px-6 md:py-4 font-semibold text-slate-700 text-right w-[30%] md:w-auto">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {filteredUsers.map(user => (
-                <tr key={user.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-3 py-3 md:px-6 md:py-4 overflow-hidden">
-                    <div className="flex items-center">
-                      <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full mr-2 md:mr-3 border border-slate-200 shrink-0" />
-                      <div className="min-w-0">
-                        <div className="font-medium text-slate-800 truncate">{user.name}</div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="hidden md:table-cell px-6 py-4 text-slate-500 font-mono text-xs">{user.username}</td>
-                  <td className="px-3 py-3 md:px-6 md:py-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] md:text-xs font-medium ${user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
-                      }`}>
-                      {user.role === UserRole.ADMIN ? <Shield size={10} className="mr-1" /> : <UserIcon size={10} className="mr-1" />}
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-3 py-3 md:px-6 md:py-4 text-right">
-                    <div className="flex justify-end space-x-1">
-                      <button
-                        onClick={() => openEditModal(user)}
-                        className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded transition-colors"
-                        title="Settings"
-                      >
-                        <Settings size={18} />
-                      </button>
-                      {user.id !== currentUser.id && (
-                        <button
-                          onClick={() => deleteUser(user.id)}
-                          className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
-                          title="Delete User"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {filteredUsers.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="px-6 py-8 text-center text-slate-400">
-                    {searchTerm ? `No users found matching "${searchTerm}"` : 'No users found'}
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {activeSection === 'users' ? (
+        <>
+          {/* USERS TOOLBAR */}
+          <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search users..."
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                value={userSearchTerm}
+                onChange={(e) => setUserSearchTerm(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={openAddUserModal}
+              className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors shadow-sm shrink-0 font-medium text-sm"
+            >
+              <UserPlus size={16} className="mr-2" /> Add User
+            </button>
+          </div>
 
+          {/* USERS TABLE */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="overflow-y-auto custom-scrollbar">
+              <table className="w-full text-left text-sm table-fixed md:table-auto">
+                <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold text-slate-700 w-[40%]">User</th>
+                    <th className="hidden md:table-cell px-6 py-4 font-semibold text-slate-700">Username</th>
+                    <th className="px-6 py-4 font-semibold text-slate-700 w-[20%]">Role</th>
+                    <th className="px-6 py-4 font-semibold text-slate-700 text-right w-[20%]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredUsers.map(user => (
+                    <tr key={user.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <img src={user.avatar} alt={user.name} className="w-8 h-8 rounded-full mr-3 border border-slate-200 shrink-0" />
+                          <div className="font-medium text-slate-800 truncate">{user.name}</div>
+                        </div>
+                      </td>
+                      <td className="hidden md:table-cell px-6 py-4 text-slate-500 font-mono text-xs">{user.username}</td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${user.role === UserRole.ADMIN ? 'bg-purple-100 text-purple-800' : 'bg-blue-100 text-blue-800'
+                          }`}>
+                          {user.role === UserRole.ADMIN ? <Shield size={10} className="mr-1" /> : <UserIcon size={10} className="mr-1" />}
+                          {user.role}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end space-x-1">
+                          <button
+                            onClick={() => openEditUserModal(user)}
+                            className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded transition-colors"
+                            title="Settings"
+                          >
+                            <Settings size={18} />
+                          </button>
+                          {user.id !== currentUser.id && (
+                            <button
+                              onClick={() => deleteUser(user.id)}
+                              className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
+                              title="Delete User"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredUsers.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-6 py-8 text-center text-slate-400">
+                        {userSearchTerm ? `No users found matching "${userSearchTerm}"` : 'No users found'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          {/* PROJECTS TOOLBAR */}
+          <div className="flex justify-between items-center mb-4 shrink-0 gap-4">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input
+                type="text"
+                placeholder="Search projects..."
+                className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                value={projectSearchTerm}
+                onChange={(e) => setProjectSearchTerm(e.target.value)}
+              />
+            </div>
+            <button
+              onClick={openAddProjectModal}
+              className="flex items-center bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg transition-colors shadow-sm shrink-0 font-medium text-sm"
+            >
+              <FolderPlus size={16} className="mr-2" /> Add Project
+            </button>
+          </div>
+
+          {/* PROJECTS TABLE */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden flex-1 flex flex-col min-h-0">
+            <div className="overflow-y-auto custom-scrollbar">
+              <table className="w-full text-left text-sm table-fixed md:table-auto">
+                <thead className="bg-slate-50 border-b border-slate-100 sticky top-0 z-10">
+                  <tr>
+                    <th className="px-6 py-4 font-semibold text-slate-700 w-[40%]">Project Name</th>
+                    <th className="hidden md:table-cell px-6 py-4 font-semibold text-slate-700">Description</th>
+                    <th className="px-6 py-4 font-semibold text-slate-700 text-right w-[20%]">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredProjects.map(project => (
+                    <tr key={project.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <div className="flex items-center">
+                          <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center mr-3 border border-indigo-100 shrink-0">
+                            <Folder size={16} />
+                          </div>
+                          <div>
+                            <div className="font-medium text-slate-800 truncate">{project.name}</div>
+                            <div className="text-[10px] text-slate-400 font-mono">ID: {project.id}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="hidden md:table-cell px-6 py-4 text-slate-500 truncate max-w-xs">{project.description}</td>
+                      <td className="px-6 py-4 text-right">
+                        <div className="flex justify-end space-x-1">
+                          <button
+                            onClick={() => openEditProjectModal(project)}
+                            className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded transition-colors"
+                            title="Edit Project"
+                          >
+                            <PenLine size={18} />
+                          </button>
+                          <button
+                            onClick={() => deleteProject(project.id)}
+                            className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
+                            title="Delete Project"
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredProjects.length === 0 && (
+                    <tr>
+                      <td colSpan={3} className="px-6 py-8 text-center text-slate-400">
+                        {projectSearchTerm ? `No projects found matching "${projectSearchTerm}"` : 'No projects found'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* --- User Modal --- */}
       <Modal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
         title={editingUser ? "Edit User Settings" : "Create New User"}
         maxWidth="max-w-2xl"
         className="h-auto"
       >
-        <form onSubmit={handleSubmit} className="flex flex-col h-full px-6 pb-6">
+        <form onSubmit={handleUserSubmit} className="flex flex-col h-full px-6 pb-6">
           {/* Custom Tabs */}
           <div className="flex border-b border-slate-100 mb-6 -mx-6 px-6">
             <button
               type="button"
-              onClick={() => setActiveTab('account')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'account' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              onClick={() => setUserModalTab('account')}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${userModalTab === 'account' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
             >
               Account Details
             </button>
             <button
               type="button"
-              onClick={() => setActiveTab('permissions')}
-              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'permissions' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
+              onClick={() => setUserModalTab('permissions')}
+              className={`flex-1 py-3 text-sm font-medium border-b-2 transition-colors ${userModalTab === 'permissions' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
             >
               Project Access
             </button>
           </div>
 
           <div className="flex-1 overflow-y-auto custom-scrollbar">
-            {activeTab === 'account' ? (
+            {userModalTab === 'account' ? (
               <div className="space-y-6 animate-in fade-in slide-in-from-left-2 duration-200 py-1">
                 {/* Name Field */}
                 <div>
@@ -232,8 +392,8 @@ export const AdminPanel: React.FC = () => {
                       required
                       type="text"
                       className="w-full pl-10 pr-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all bg-slate-50 focus:bg-white"
-                      value={formData.name}
-                      onChange={e => setFormData({ ...formData, name: e.target.value })}
+                      value={userFormData.name}
+                      onChange={e => setUserFormData({ ...userFormData, name: e.target.value })}
                       placeholder="John Doe"
                     />
                   </div>
@@ -247,8 +407,8 @@ export const AdminPanel: React.FC = () => {
                       required
                       type="text"
                       className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all bg-slate-50 focus:bg-white"
-                      value={formData.username}
-                      onChange={e => setFormData({ ...formData, username: e.target.value })}
+                      value={userFormData.username}
+                      onChange={e => setUserFormData({ ...userFormData, username: e.target.value })}
                       placeholder="johndoe"
                     />
                   </div>
@@ -257,8 +417,8 @@ export const AdminPanel: React.FC = () => {
                     <div className="relative">
                       <select
                         className="w-full px-3 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all bg-slate-50 focus:bg-white appearance-none cursor-pointer"
-                        value={formData.role}
-                        onChange={e => setFormData({ ...formData, role: e.target.value as UserRole })}
+                        value={userFormData.role}
+                        onChange={e => setUserFormData({ ...userFormData, role: e.target.value as UserRole })}
                       >
                         <option value={UserRole.MEMBER}>Member</option>
                         <option value={UserRole.ADMIN}>Administrator</option>
@@ -279,8 +439,8 @@ export const AdminPanel: React.FC = () => {
                       required
                       type={showPassword ? "text" : "password"}
                       className="w-full pl-10 pr-10 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all bg-slate-50 focus:bg-white font-mono tracking-wide"
-                      value={formData.password}
-                      onChange={e => setFormData({ ...formData, password: e.target.value })}
+                      value={userFormData.password}
+                      onChange={e => setUserFormData({ ...userFormData, password: e.target.value })}
                       placeholder="Secret123"
                     />
                     <button
@@ -322,7 +482,7 @@ export const AdminPanel: React.FC = () => {
                             key={level}
                             type="button"
                             onClick={() => handleAccessChange(project.id, level)}
-                            className={`px-3 py-1.5 text-[10px] font-bold rounded-md capitalize transition-all ${formData.projectAccess[project.id] === level
+                            className={`px-3 py-1.5 text-[10px] font-bold rounded-md capitalize transition-all ${userFormData.projectAccess[project.id] === level
                               ? level === 'none' ? 'bg-white text-slate-600 shadow-sm border border-slate-200' :
                                 level === 'read' ? 'bg-white text-blue-600 shadow-sm border border-slate-200' : 'bg-white text-green-600 shadow-sm border border-slate-200'
                               : 'text-slate-400 hover:text-slate-600 hover:bg-slate-200/50'
@@ -345,7 +505,7 @@ export const AdminPanel: React.FC = () => {
           <div className="pt-6 mt-6 border-t border-slate-100 flex justify-end space-x-3">
             <button
               type="button"
-              onClick={() => setIsModalOpen(false)}
+              onClick={() => setIsUserModalOpen(false)}
               className="px-5 py-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-lg text-sm font-medium transition-colors"
             >
               Cancel
@@ -355,6 +515,56 @@ export const AdminPanel: React.FC = () => {
               className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow-lg shadow-indigo-200 transition-all transform hover:scale-[1.02]"
             >
               {editingUser ? 'Save Changes' : 'Create User'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* --- Project Modal --- */}
+      <Modal
+        isOpen={isProjectModalOpen}
+        onClose={() => setIsProjectModalOpen(false)}
+        title={editingProject ? "Edit Project" : "Create New Project"}
+        maxWidth="max-w-xl"
+        className="h-auto"
+      >
+        <form onSubmit={handleProjectSubmit} className="flex flex-col h-full px-6 pb-6">
+          <div className="space-y-6 pt-2">
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Project Name</label>
+              <input
+                required
+                type="text"
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all"
+                value={projectFormData.name}
+                onChange={e => setProjectFormData({ ...projectFormData, name: e.target.value })}
+                placeholder="Marketing Campaign"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Description</label>
+              <textarea
+                className="w-full px-4 py-2.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm transition-all min-h-[100px] resize-none"
+                value={projectFormData.description}
+                onChange={e => setProjectFormData({ ...projectFormData, description: e.target.value })}
+                placeholder="Project goals and details..."
+              />
+            </div>
+          </div>
+
+          <div className="pt-6 mt-6 border-t border-slate-100 flex justify-end space-x-3">
+            <button
+              type="button"
+              onClick={() => setIsProjectModalOpen(false)}
+              className="px-5 py-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-lg text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg text-sm shadow-lg shadow-indigo-200 transition-all transform hover:scale-[1.02]"
+            >
+              {editingProject ? 'Save Changes' : 'Create Project'}
             </button>
           </div>
         </form>
