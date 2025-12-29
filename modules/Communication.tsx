@@ -12,7 +12,7 @@ import { Modal } from '../components/Modal';
 
 export const Communication: React.FC = () => {
   const {
-    messages, addMessage, currentUser, users, groups, createGroup, markChatRead, getUnreadCount,
+    messages, addMessage, currentUser, users, groups, createGroup, deleteGroup, markChatRead, getUnreadCount,
     startCall, startGroupCall, addToCall, endCall, isInCall, activeCallData, localStream, remoteStreams, isScreenSharing, toggleScreenShare,
     isMicOn, isCameraOn, toggleMic, deletedMessageIds, clearChatHistory, hasAudioDevice
   } = useApp();
@@ -167,9 +167,28 @@ export const Communication: React.FC = () => {
 
   const handleDeleteChat = async (e: React.MouseEvent, chatId: string) => {
     e.stopPropagation();
+
+    const group = groups.find(g => g.id === chatId);
+    // If it's a group and I am the creator, delete it globally for everyone
+    if (group && group.createdBy === currentUser?.id) {
+      if (confirm(`Are you sure you want to permanently delete the group "${group.name}" for all members?`)) {
+        await deleteGroup(chatId);
+        if (selectedChat?.id === chatId) setSelectedChat(null);
+      }
+      setActiveMenuId(null);
+      setActiveHeaderMenu(false);
+      return;
+    }
+
     await clearChatHistory(chatId);
-    // Optional: Hide after delete
-    // setHiddenChatIds(prev => [...prev, chatId]);
+
+    // Remove from manual list and add to hidden list to ensure it disappears from view
+    setManualChatIds(prev => prev.filter(id => id !== chatId));
+    setHiddenChatIds(prev => [...prev, chatId]);
+
+    if (selectedChat?.id === chatId) {
+      setSelectedChat(null);
+    }
     setActiveMenuId(null);
     setActiveHeaderMenu(false);
   };
@@ -569,21 +588,58 @@ export const Communication: React.FC = () => {
       isOpen={isInviteModalOpen}
       onClose={() => setIsInviteModalOpen(false)}
       title="Add Member to Call"
+      maxWidth="max-w-xl"
+      className="h-[500px]"
+      noScroll
     >
-      {/* ... Invite Modal Content ... */}
-      <div className="space-y-4">
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-3 text-slate-400" />
-          <input type="text" placeholder="Search members..." className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none" autoFocus />
+      <div className="flex flex-col h-full p-6 space-y-4">
+        <div className="relative shrink-0">
+          <Search size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Search members..."
+            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-base"
+            autoFocus
+          />
         </div>
-        <div className="max-h-60 overflow-y-auto space-y-2">
+
+        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2">
           {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).map(user => (
-            <div key={user.id} className="flex items-center justify-between p-2 rounded-lg hover:bg-slate-50 border border-transparent hover:border-slate-100">
-              <div className="flex items-center"><div className="relative mr-3"><img src={user.avatar} className="w-10 h-10 rounded-full" /><div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${user.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div></div><span className="font-medium text-slate-800">{user.name}</span></div>
-              <button onClick={() => handleInviteUser(user.id)} className="bg-indigo-50 text-indigo-600 hover:bg-indigo-600 hover:text-white p-2 rounded-lg transition-colors"><Phone size={18} /></button>
+            <div key={user.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 hover:border-indigo-200 transition-all group">
+              <div className="flex items-center min-w-0">
+                <div className="relative mr-3">
+                  <img src={user.avatar} className="w-10 h-10 rounded-full border border-slate-200" />
+                  <div className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${user.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                </div>
+                <div className="truncate">
+                  <div className="font-bold text-slate-800 text-sm truncate">{user.name}</div>
+                  <div className="text-xs text-slate-500 truncate">@{user.username}</div>
+                </div>
+              </div>
+              <button
+                onClick={() => handleInviteUser(user.id)}
+                className="p-2 bg-indigo-50 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-all shadow-sm"
+                title="Call"
+              >
+                <Phone size={18} />
+              </button>
             </div>
           ))}
-          {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).length === 0 && <div className="text-center text-slate-400 py-4 text-sm">No other users available to add.</div>}
+          {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).length === 0 && (
+            <div className="flex flex-col items-center justify-center h-40 text-center text-slate-400">
+              <UserPlus size={32} className="mb-2 opacity-50" />
+              <span className="text-sm">No other users available to add.</span>
+            </div>
+          )}
+        </div>
+
+        <div className="shrink-0 pt-4 border-t border-slate-100 flex justify-end">
+          <button
+            onClick={() => setIsInviteModalOpen(false)}
+            className="px-5 py-2 text-slate-500 font-medium hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            Close
+          </button>
         </div>
       </div>
     </Modal>
@@ -911,10 +967,10 @@ export const Communication: React.FC = () => {
 
                     {/* Message Bubble */}
                     <div className={`px-4 py-2 shadow-sm text-sm leading-relaxed max-w-full break-words ${isMissedCall
-                        ? 'bg-red-50 border border-red-100 text-red-800 rounded-2xl'
-                        : isMe
-                          ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-sm'
-                          : 'bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-tl-sm'
+                      ? 'bg-red-50 border border-red-100 text-red-800 rounded-2xl'
+                      : isMe
+                        ? 'bg-indigo-600 text-white rounded-2xl rounded-tr-sm'
+                        : 'bg-white border border-slate-100 text-slate-800 rounded-2xl rounded-tl-sm'
                       }`}>
                       {isMissedCall ? (
                         <div className="flex items-center space-x-2">
@@ -1020,8 +1076,8 @@ export const Communication: React.FC = () => {
               type="submit"
               disabled={!inputText.trim() && attachments.length === 0}
               className={`p-3 rounded-xl transition-all flex-shrink-0 ${inputText.trim() || attachments.length > 0
-                  ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700 hover:scale-105 active:scale-95'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                ? 'bg-indigo-600 text-white shadow-md hover:bg-indigo-700 hover:scale-105 active:scale-95'
+                : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 }`}
             >
               <Send size={18} />
@@ -1062,8 +1118,8 @@ export const Communication: React.FC = () => {
                     key={user.id}
                     onClick={() => toggleUserSelection(user.id)}
                     className={`flex items-center p-3 rounded-xl cursor-pointer border transition-all ${selectedUserIdsForGroup.includes(user.id)
-                        ? 'border-indigo-500 bg-indigo-50 shadow-sm'
-                        : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50'
+                      ? 'border-indigo-500 bg-indigo-50 shadow-sm'
+                      : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50'
                       }`}
                   >
                     <div className={`shrink-0 w-6 h-6 rounded-full border flex items-center justify-center mr-3 transition-colors ${selectedUserIdsForGroup.includes(user.id) ? 'bg-indigo-600 border-indigo-600 text-white' : 'border-slate-300 bg-white'}`}>
@@ -1109,8 +1165,8 @@ export const Communication: React.FC = () => {
               onClick={handleCreateChat}
               disabled={selectedUserIdsForGroup.length === 0 || (selectedUserIdsForGroup.length > 1 && !newGroupName.trim())}
               className={`px-6 py-2.5 rounded-xl font-bold text-white shadow-lg transition-all transform active:scale-95 ${selectedUserIdsForGroup.length === 0 || (selectedUserIdsForGroup.length > 1 && !newGroupName.trim())
-                  ? 'bg-slate-300 shadow-none cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-0.5'
+                ? 'bg-slate-300 shadow-none cursor-not-allowed'
+                : 'bg-indigo-600 hover:bg-indigo-700 hover:shadow-indigo-200 hover:-translate-y-0.5'
                 }`}
             >
               {selectedUserIdsForGroup.length > 1 ? 'Create Group' : 'Start Chat'}
