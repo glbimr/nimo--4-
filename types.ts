@@ -106,7 +106,6 @@ export interface Task {
   attachments: Attachment[];
   comments: Comment[];
   dueDate?: string;
-  position: number;
   createdAt: number;
 }
 
