@@ -63,13 +63,14 @@ export const INITIAL_TASKS: Task[] = [
     assigneeId: 'u2',
     priority: 'high',
     dueDate: '2023-12-01',
+    position: 1000,
     createdAt: Date.now() - 10000000,
     attachments: [],
     comments: [],
     subtasks: [
-      { 
-        id: 'st1', 
-        title: 'Install dependencies', 
+      {
+        id: 'st1',
+        title: 'Install dependencies',
         completed: true,
         status: TaskStatus.DONE,
         category: TaskCategory.TASK,
@@ -79,9 +80,9 @@ export const INITIAL_TASKS: Task[] = [
         comments: [],
         createdAt: Date.now()
       },
-      { 
-        id: 'st2', 
-        title: 'Configure ESLint', 
+      {
+        id: 'st2',
+        title: 'Configure ESLint',
         completed: true,
         status: TaskStatus.DONE,
         category: TaskCategory.TASK,
@@ -103,15 +104,16 @@ export const INITIAL_TASKS: Task[] = [
     assigneeId: 'u3',
     priority: 'medium',
     dueDate: '2023-12-15',
+    position: 2000,
     createdAt: Date.now() - 5000000,
     attachments: [
       { id: 'a1', name: 'hero_v1.png', size: '2.4 MB', type: 'image/png' }
     ],
     comments: [],
     subtasks: [
-      { 
-        id: 'st3', 
-        title: 'Hero Banner', 
+      {
+        id: 'st3',
+        title: 'Hero Banner',
         completed: true,
         status: TaskStatus.DONE,
         category: TaskCategory.STORY,
@@ -121,9 +123,9 @@ export const INITIAL_TASKS: Task[] = [
         comments: [],
         createdAt: Date.now()
       },
-      { 
-        id: 'st4', 
-        title: 'Testimonials Section', 
+      {
+        id: 'st4',
+        title: 'Testimonials Section',
         completed: false,
         status: TaskStatus.TODO,
         category: TaskCategory.STORY,
@@ -145,6 +147,7 @@ export const INITIAL_TASKS: Task[] = [
     assigneeId: 'u2',
     priority: 'high',
     dueDate: '2023-12-20',
+    position: 3000,
     createdAt: Date.now() - 1000000,
     attachments: [],
     comments: [],
@@ -160,6 +163,7 @@ export const INITIAL_TASKS: Task[] = [
     assigneeId: 'u2',
     priority: 'high',
     dueDate: '2023-12-10',
+    position: 4000,
     createdAt: Date.now() - 200000,
     attachments: [],
     comments: [],

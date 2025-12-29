@@ -60,7 +60,9 @@ const TaskCardItem: React.FC<{
   onEditSubtask: (task: Task, subtask: SubTask) => void;
   onUpdateTask: (task: Task) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
-}> = ({ task, users, canEdit, onEditTask, onEditSubtask, onUpdateTask, onDragStart }) => {
+  onDrop: (e: React.DragEvent, status: TaskStatus, targetTaskId?: string) => void;
+  status: TaskStatus;
+}> = ({ task, users, canEdit, onEditTask, onEditSubtask, onUpdateTask, onDragStart, onDrop, status }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assigningSubtaskId, setAssigningSubtaskId] = useState<string | null>(null);
@@ -114,6 +116,8 @@ const TaskCardItem: React.FC<{
     <div
       draggable={canEdit}
       onDragStart={(e) => onDragStart(e, task.id)}
+      onDragOver={(e) => { if (canEdit) e.preventDefault(); }}
+      onDrop={(e) => { if (canEdit) { e.stopPropagation(); onDrop(e, status, task.id); } }}
       className={`bg-white p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 transition-all group relative 
         ${canEdit ? 'cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-indigo-100 hover:-translate-y-0.5' : 'cursor-default opacity-90'}
         ${isAssigning ? 'z-20 ring-2 ring-indigo-100 shadow-xl' : 'z-0'}
@@ -339,7 +343,7 @@ interface ColumnProps {
   canEdit: boolean;
   users: User[];
   onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, status: TaskStatus) => void;
+  onDrop: (e: React.DragEvent, status: TaskStatus, targetTaskId?: string) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
   onEditTask: (task: Task) => void;
   onEditSubtask: (task: Task, subtask: SubTask) => void;
@@ -367,7 +371,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
           {tasks.length}
         </span>
       </div>
-      <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-2 custom-scrollbar">
+      <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-2 no-scrollbar">
         {tasks.map(task => (
           <TaskCardItem
             key={task.id}
@@ -378,6 +382,8 @@ const KanbanColumn: React.FC<ColumnProps> = ({
             onEditSubtask={onEditSubtask}
             onUpdateTask={onUpdateTask}
             onDragStart={onDragStart}
+            onDrop={onDrop}
+            status={status}
           />
         ))}
         {tasks.length === 0 && canEdit && (
@@ -535,6 +541,7 @@ const TaskEditor: React.FC<{
     subtasks: [],
     attachments: [],
     comments: [],
+    position: Date.now(),
     createdAt: Date.now()
   });
 
@@ -1449,10 +1456,37 @@ export const KanbanBoard: React.FC = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, status: TaskStatus) => {
+  const handleDrop = (e: React.DragEvent, status: TaskStatus, targetTaskId?: string) => {
     e.preventDefault();
     if (draggedTaskId) {
-      moveTask(draggedTaskId, status);
+      if (draggedTaskId === targetTaskId) {
+        setDraggedTaskId(null);
+        return;
+      }
+
+      // Calculate new position
+      const columnTasks = tasks
+        .filter(t => t.status === status)
+        .sort((a, b) => a.position - b.position);
+
+      let newPosition: number;
+
+      if (targetTaskId) {
+        const targetIndex = columnTasks.findIndex(t => t.id === targetTaskId);
+        const targetTask = columnTasks[targetIndex];
+        const prevTask = columnTasks[targetIndex - 1];
+
+        if (!prevTask) {
+          newPosition = targetTask.position - 1000;
+        } else {
+          newPosition = (prevTask.position + targetTask.position) / 2;
+        }
+      } else {
+        const lastTask = columnTasks[columnTasks.length - 1];
+        newPosition = lastTask ? lastTask.position + 1000 : Date.now();
+      }
+
+      moveTask(draggedTaskId, status, newPosition);
       setDraggedTaskId(null);
     }
   };
@@ -1471,9 +1505,9 @@ export const KanbanBoard: React.FC = () => {
     return matchesSearch && matchesCategory && matchesProject && matchesAssignee;
   });
 
-  const todoTasks = filteredTasks.filter(t => t.status === TaskStatus.TODO);
-  const inProgressTasks = filteredTasks.filter(t => t.status === TaskStatus.IN_PROGRESS);
-  const doneTasks = filteredTasks.filter(t => t.status === TaskStatus.DONE);
+  const todoTasks = filteredTasks.filter(t => t.status === TaskStatus.TODO).sort((a, b) => a.position - b.position);
+  const inProgressTasks = filteredTasks.filter(t => t.status === TaskStatus.IN_PROGRESS).sort((a, b) => a.position - b.position);
+  const doneTasks = filteredTasks.filter(t => t.status === TaskStatus.DONE).sort((a, b) => a.position - b.position);
 
   const canEdit = !!currentUser; // Assuming all logged in users can edit for now based on role logic in store/types
 
@@ -1574,7 +1608,7 @@ export const KanbanBoard: React.FC = () => {
 
       {/* Content Area */}
       {viewMode === 'board' ? (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden no-scrollbar">
           <div className="flex h-full gap-6 min-w-[1000px] md:min-w-0">
             <div className="flex-1 min-w-[300px] h-full">
               <KanbanColumn

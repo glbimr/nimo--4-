@@ -40,7 +40,7 @@ interface AppContextType {
   addTask: (t: Task) => void;
   updateTask: (t: Task) => void;
   deleteTask: (id: string) => Promise<void>;
-  moveTask: (taskId: string, newStatus: TaskStatus) => void;
+  moveTask: (taskId: string, newStatus: TaskStatus, newPosition?: number) => void;
   addMessage: (text: string, recipientId?: string, attachments?: Attachment[]) => void;
   createGroup: (name: string, memberIds: string[]) => Promise<string | null>;
   addProject: (name: string, description: string) => void;
@@ -139,6 +139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     projectId: t.project_id,
     assigneeId: t.assignee_id,
     dueDate: t.due_date,
+    position: t.position || t.created_at,
     createdAt: t.created_at
   });
   const mapProjectFromDB = (p: any): Project => ({
@@ -202,7 +203,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { data: projectData } = await supabase.from('projects').select('*');
       if (projectData) setProjects(projectData.map(mapProjectFromDB));
 
-      const { data: taskData } = await supabase.from('tasks').select('*');
+      const { data: taskData } = await supabase.from('tasks').select('*').order('position', { ascending: true });
       if (taskData) setTasks(taskData.map(mapTaskFromDB));
 
       const { data: msgData } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
@@ -518,6 +519,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       attachments: t.attachments,
       comments: t.comments,
       subtasks: t.subtasks,
+      position: t.position || t.createdAt,
       created_at: t.createdAt
     });
   };
@@ -533,7 +535,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       due_date: t.dueDate,
       attachments: t.attachments,
       comments: t.comments,
-      subtasks: t.subtasks
+      subtasks: t.subtasks,
+      position: t.position
     }).eq('id', t.id);
   };
 
@@ -541,8 +544,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabase.from('tasks').delete().eq('id', id);
   };
 
-  const moveTask = async (id: string, s: TaskStatus) => {
-    await supabase.from('tasks').update({ status: s }).eq('id', id);
+  const moveTask = async (id: string, s: TaskStatus, newPosition?: number) => {
+    const updateData: any = { status: s };
+    if (newPosition !== undefined) {
+      updateData.position = newPosition;
+    }
+    await supabase.from('tasks').update(updateData).eq('id', id);
   };
 
   const addMessage = async (text: string, recipientId?: string, attachments: Attachment[] = []) => {
