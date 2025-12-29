@@ -594,6 +594,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await Promise.all(updates.map(u =>
       supabase.from('tasks').update({ status: u.status, order: u.order }).eq('id', u.id)
     ));
+
+    // 8. Notification
+    if (task.status !== s && task.assigneeId) {
+      triggerNotification(
+        task.assigneeId,
+        NotificationType.ASSIGNMENT,
+        'Task Status Updated',
+        `Task "${task.title}" moved to ${s.replace('_', ' ')}`,
+        task.id
+      );
+    }
   };
 
   const addMessage = async (text: string, recipientId?: string, attachments: Attachment[] = []) => {

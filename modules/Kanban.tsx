@@ -822,21 +822,16 @@ const TaskEditor: React.FC<{
                 {/* Status / Completed */}
                 <div className="col-span-2">
                   <label className="text-xs font-bold text-slate-500 uppercase mb-1.5 block">State</label>
-                  <button
-                    type="button"
+                  <select
                     disabled={readOnly}
-                    onClick={() => {
-                      const isDone = formData.status === TaskStatus.DONE;
-                      setFormData({ ...formData, status: isDone ? TaskStatus.TODO : TaskStatus.DONE });
-                    }}
-                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.status === TaskStatus.DONE
-                      ? 'bg-green-50 border-green-200 text-green-700'
-                      : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300'
-                      }`}
+                    value={formData.status}
+                    onChange={e => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                    className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
                   >
-                    <span>{formData.status === TaskStatus.DONE ? 'Completed' : 'Incomplete'}</span>
-                    {formData.status === TaskStatus.DONE ? <CheckCircle2 size={16} /> : <Circle size={16} />}
-                  </button>
+                    <option value={TaskStatus.TODO}>To Do</option>
+                    <option value={TaskStatus.IN_PROGRESS}>In Progress</option>
+                    <option value={TaskStatus.DONE}>Completed</option>
+                  </select>
                 </div>
 
                 {/* Category */}
