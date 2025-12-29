@@ -6,13 +6,13 @@ import { KanbanBoard } from './modules/Kanban';
 import { Communication } from './modules/Communication';
 import { AdminPanel } from './modules/AdminPanel';
 import { Modal } from './components/Modal';
-import { 
-  LayoutDashboard, 
-  KanbanSquare, 
-  MessageSquare, 
-  Settings, 
-  LogOut, 
-  Menu, 
+import {
+  LayoutDashboard,
+  KanbanSquare,
+  MessageSquare,
+  Settings,
+  LogOut,
+  Menu,
   X,
   Camera,
   Upload,
@@ -56,9 +56,9 @@ const IncomingCallOverlay: React.FC = () => {
       // Play Ringtone
       audioRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/2368/2368-preview.mp3');
       audioRef.current.loop = true;
-      
+
       const playPromise = audioRef.current.play();
-      
+
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
@@ -89,9 +89,9 @@ const IncomingCallOverlay: React.FC = () => {
 
   const retryAudio = () => {
     if (audioRef.current) {
-        audioRef.current.play()
-            .then(() => setAudioError(false))
-            .catch(e => console.error(e));
+      audioRef.current.play()
+        .then(() => setAudioError(false))
+        .catch(e => console.error(e));
     }
   };
 
@@ -102,19 +102,19 @@ const IncomingCallOverlay: React.FC = () => {
   return (
     <div className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-in fade-in duration-300">
       <div className="flex flex-col items-center space-y-8">
-        
+
         <div className="relative">
           {/* Pulsing rings */}
           <div className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping opacity-75"></div>
           <div className="absolute inset-0 rounded-full border-2 border-white/40 animate-ping opacity-50 delay-150"></div>
-          
-          <img 
-            src={caller?.avatar} 
-            alt={caller?.name} 
-            className="w-32 h-32 rounded-full border-4 border-white shadow-2xl relative z-10" 
+
+          <img
+            src={caller?.avatar}
+            alt={caller?.name}
+            className="w-32 h-32 rounded-full border-4 border-white shadow-2xl relative z-10"
           />
           <div className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full z-20 border-2 border-black">
-             <Phone size={20} />
+            <Phone size={20} />
           </div>
         </div>
 
@@ -124,17 +124,17 @@ const IncomingCallOverlay: React.FC = () => {
         </div>
 
         {audioError && (
-             <button 
-               onClick={retryAudio}
-               className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full transition-colors text-sm"
-             >
-               <VolumeX size={16} />
-               <span>Tap to unmute ringtone</span>
-             </button>
+          <button
+            onClick={retryAudio}
+            className="flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-full transition-colors text-sm"
+          >
+            <VolumeX size={16} />
+            <span>Tap to unmute ringtone</span>
+          </button>
         )}
 
         <div className="flex items-center space-x-12 mt-8">
-          <button 
+          <button
             onClick={rejectIncomingCall}
             className="flex flex-col items-center space-y-2 group"
           >
@@ -144,7 +144,7 @@ const IncomingCallOverlay: React.FC = () => {
             <span className="text-white text-sm font-medium opacity-80 group-hover:opacity-100">Decline</span>
           </button>
 
-          <button 
+          <button
             onClick={acceptIncomingCall}
             className="flex flex-col items-center space-y-2 group"
           >
@@ -161,15 +161,15 @@ const IncomingCallOverlay: React.FC = () => {
 };
 
 const MainLayout: React.FC = () => {
-  const { 
-    currentUser, logout, updateUser, 
+  const {
+    currentUser, logout, updateUser,
     notifications, markNotificationRead, clearNotifications,
-    totalUnreadChatCount 
+    totalUnreadChatCount
   } = useApp();
-  
+
   const [activeTab, setActiveTab] = useState<'dashboard' | 'projects' | 'chat' | 'admin'>('dashboard');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  
+
   // Avatar Modal State
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [previewAvatar, setPreviewAvatar] = useState('');
@@ -183,24 +183,23 @@ const MainLayout: React.FC = () => {
   }
 
   // Filter notifications for current user
-  const myNotifications = notifications.filter(n => n.recipientId === currentUser.id).sort((a,b) => b.timestamp - a.timestamp);
+  const myNotifications = notifications.filter(n => n.recipientId === currentUser.id).sort((a, b) => b.timestamp - a.timestamp);
   const unreadNotificationCount = myNotifications.filter(n => !n.read).length;
 
   const NavItem = ({ id, icon: Icon, label, badgeCount }: { id: typeof activeTab, icon: any, label: string, badgeCount?: number }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`w-full relative group flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-lg transition-all ${
-        activeTab === id 
-        ? 'bg-indigo-600 text-white shadow-md' 
-        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-      }`}
+      className={`w-full relative group flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-lg transition-all ${activeTab === id
+          ? 'bg-indigo-600 text-white shadow-md'
+          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        }`}
       title={isSidebarCollapsed ? label : undefined}
     >
       <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
         <Icon size={20} className="shrink-0" />
         {!isSidebarCollapsed && <span className="font-medium whitespace-nowrap overflow-hidden transition-all duration-300">{label}</span>}
       </div>
-      
+
       {/* Red Dot for Unread Messages - Replaces Numeric Badge */}
       {!isSidebarCollapsed && badgeCount !== undefined && badgeCount > 0 && (
         <span className="w-2.5 h-2.5 bg-red-500 rounded-full animate-pulse shrink-0"></span>
@@ -215,11 +214,10 @@ const MainLayout: React.FC = () => {
   const BottomNavItem = ({ id, icon: Icon, label, badgeCount }: { id: typeof activeTab, icon: any, label: string, badgeCount?: number }) => (
     <button
       onClick={() => setActiveTab(id)}
-      className={`flex flex-col items-center justify-center w-full p-2 ${
-        activeTab === id 
-        ? 'text-indigo-600' 
-        : 'text-slate-400 hover:text-slate-600'
-      }`}
+      className={`flex flex-col items-center justify-center w-full p-2 ${activeTab === id
+          ? 'text-indigo-600'
+          : 'text-slate-400 hover:text-slate-600'
+        }`}
     >
       <div className="relative">
         <Icon size={24} strokeWidth={activeTab === id ? 2.5 : 2} className="transition-all" />
@@ -252,14 +250,14 @@ const MainLayout: React.FC = () => {
   return (
     <div className="flex h-[100dvh] bg-slate-50 overflow-hidden">
       <IncomingCallOverlay />
-      
+
       {/* Desktop Sidebar (Hidden on Mobile) */}
       <aside className={`
         hidden md:flex flex-col z-50 bg-slate-900 text-white transition-all duration-300 ease-in-out shadow-xl h-full relative
         ${isSidebarCollapsed ? 'w-20' : 'w-64'}
       `}>
         {/* Sidebar Toggle Button */}
-        <button 
+        <button
           onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
           className="absolute -right-3 top-9 bg-indigo-600 hover:bg-indigo-700 text-white p-1 rounded-full shadow-lg border-2 border-slate-50 flex items-center justify-center w-6 h-6 z-50 transition-transform hover:scale-110"
           title={isSidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -303,24 +301,24 @@ const MainLayout: React.FC = () => {
           </button>
 
           {/* User Profile - Now Clickable for Settings/Logout */}
-          <button 
+          <button
             onClick={handleOpenAvatarModal}
             className={`w-full flex items-center rounded-lg hover:bg-slate-800 transition-colors text-left ${isSidebarCollapsed ? 'justify-center p-2' : 'px-3 py-2'}`}
             title="Profile & Settings"
           >
-            <div 
+            <div
               className="relative w-9 h-9 group/avatar flex-shrink-0"
             >
-              <img 
-                src={currentUser.avatar} 
-                alt="User" 
-                className="w-full h-full rounded-full border-2 border-slate-700 group-hover/avatar:border-indigo-500 transition-colors object-cover" 
+              <img
+                src={currentUser.avatar}
+                alt="User"
+                className="w-full h-full rounded-full border-2 border-slate-700 group-hover/avatar:border-indigo-500 transition-colors object-cover"
               />
               <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity">
-                 <MoreHorizontal size={16} className="text-white" />
+                <MoreHorizontal size={16} className="text-white" />
               </div>
             </div>
-            
+
             {!isSidebarCollapsed && (
               <div className="ml-3 flex-1 min-w-0 animate-in fade-in slide-in-from-left-2 duration-300">
                 <p className="text-sm font-medium truncate text-white">{currentUser.name}</p>
@@ -339,23 +337,23 @@ const MainLayout: React.FC = () => {
             <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center text-white text-sm font-bold shadow-indigo-200 shadow-lg">N</div>
             <span className="font-bold text-slate-800 text-lg tracking-tight">Nexus</span>
           </div>
-          
+
           <div className="flex items-center space-x-4">
-            <button 
+            <button
               onClick={() => setIsNotificationOpen(true)}
               className="text-slate-600 relative p-1.5 hover:bg-slate-100 rounded-full transition-colors"
             >
               <Bell size={24} />
               {unreadNotificationCount > 0 && (
-                 <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+                <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
               )}
             </button>
-            
-            <button 
+
+            <button
               onClick={handleOpenAvatarModal}
               className="relative w-9 h-9 cursor-pointer ring-2 ring-transparent active:ring-indigo-100 rounded-full transition-all"
             >
-               <img src={currentUser.avatar} alt="User" className="w-full h-full rounded-full border border-slate-200 object-cover" />
+              <img src={currentUser.avatar} alt="User" className="w-full h-full rounded-full border border-slate-200 object-cover" />
             </button>
           </div>
         </header>
@@ -369,12 +367,12 @@ const MainLayout: React.FC = () => {
 
         {/* Mobile Bottom Navigation */}
         <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50 px-2 pb-safe shadow-[0_-8px_30px_rgba(0,0,0,0.04)] h-[64px] flex items-center justify-around">
-           <BottomNavItem id="dashboard" icon={LayoutDashboard} label="Home" />
-           <BottomNavItem id="projects" icon={KanbanSquare} label="Projects" />
-           <BottomNavItem id="chat" icon={MessageSquare} label="Chat" badgeCount={totalUnreadChatCount} />
-           {currentUser.role === UserRole.ADMIN && (
-             <BottomNavItem id="admin" icon={Settings} label="Admin" />
-           )}
+          <BottomNavItem id="dashboard" icon={LayoutDashboard} label="Home" />
+          <BottomNavItem id="projects" icon={KanbanSquare} label="Projects" />
+          <BottomNavItem id="chat" icon={MessageSquare} label="Chat" badgeCount={totalUnreadChatCount} />
+          {currentUser.role === UserRole.ADMIN && (
+            <BottomNavItem id="admin" icon={Settings} label="Admin" />
+          )}
         </nav>
       </main>
 
@@ -388,157 +386,187 @@ const MainLayout: React.FC = () => {
         <div className="flex flex-col md:flex-row h-full">
           {/* Left Column: Current Profile & Actions */}
           <div className="w-full md:w-5/12 bg-slate-50 p-6 flex flex-col items-center justify-center border-b md:border-b-0 md:border-r border-slate-100">
-             <div className="relative group mb-4">
-                <div className="w-32 h-32 rounded-full p-1 border-4 border-white shadow-xl overflow-hidden bg-white">
-                   <img src={previewAvatar} alt="Current Avatar" className="w-full h-full rounded-full object-cover" />
-                </div>
-                <button 
-                  onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-md hover:bg-indigo-700 transition-transform hover:scale-110"
-                  title="Upload Photo"
-                >
-                   <Camera size={18} />
-                </button>
-             </div>
-             
-             <h3 className="text-xl font-bold text-slate-800 mb-1">{currentUser.name}</h3>
-             <p className="text-sm text-slate-500 font-medium capitalize mb-6 bg-slate-200/50 px-3 py-1 rounded-full">{currentUser.role.toLowerCase()}</p>
-             
-             <input 
-               type="file" 
-               ref={fileInputRef} 
-               className="hidden" 
-               accept="image/*"
-               onChange={handleFileUpload} 
-             />
+            <div className="relative group mb-4">
+              <div className="w-32 h-32 rounded-full p-1 border-4 border-white shadow-xl overflow-hidden bg-white">
+                <img src={previewAvatar} alt="Current Avatar" className="w-full h-full rounded-full object-cover" />
+              </div>
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute bottom-0 right-0 bg-indigo-600 text-white p-2 rounded-full shadow-md hover:bg-indigo-700 transition-transform hover:scale-110"
+                title="Upload Photo"
+              >
+                <Camera size={18} />
+              </button>
+            </div>
 
-             <div className="w-full space-y-3 mt-auto">
-               <button 
-                 onClick={() => fileInputRef.current?.click()}
-                 className="w-full py-2.5 bg-white border border-slate-200 text-slate-600 font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all text-sm shadow-sm"
-               >
-                 Upload Custom Photo
-               </button>
-               <button
-                  onClick={() => {
-                    setIsAvatarModalOpen(false);
-                    logout();
-                  }}
-                  className="w-full py-2.5 bg-red-50 text-red-600 border border-red-100 font-medium rounded-lg hover:bg-red-100 transition-all text-sm flex items-center justify-center"
-               >
-                  <LogOut size={16} className="mr-2" />
-                  Sign Out
-               </button>
-             </div>
+            <h3 className="text-xl font-bold text-slate-800 mb-1">{currentUser.name}</h3>
+            <p className="text-sm text-slate-500 font-medium capitalize mb-6 bg-slate-200/50 px-3 py-1 rounded-full">{currentUser.role.toLowerCase()}</p>
+
+            <input
+              type="file"
+              ref={fileInputRef}
+              className="hidden"
+              accept="image/*"
+              onChange={handleFileUpload}
+            />
+
+            <div className="w-full space-y-3 mt-auto">
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full py-2.5 bg-white border border-slate-200 text-slate-600 font-medium rounded-lg hover:bg-slate-50 hover:border-slate-300 transition-all text-sm shadow-sm"
+              >
+                Upload Custom Photo
+              </button>
+              <button
+                onClick={() => {
+                  setIsAvatarModalOpen(false);
+                  logout();
+                }}
+                className="w-full py-2.5 bg-red-50 text-red-600 border border-red-100 font-medium rounded-lg hover:bg-red-100 transition-all text-sm flex items-center justify-center"
+              >
+                <LogOut size={16} className="mr-2" />
+                Sign Out
+              </button>
+            </div>
           </div>
 
           {/* Right Column: Avatar Gallery */}
           <div className="w-full md:w-7/12 p-6 flex flex-col">
-             <div className="flex-1">
-                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
-                   <span className="flex-1">Select from Gallery</span>
-                   <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full normal-case">8 styles</span>
-                </h4>
-                
-                <div className="grid grid-cols-4 gap-4">
-                  {PREDEFINED_AVATARS.map((avatar, index) => (
-                    <button
-                      key={index}
-                      onClick={() => setPreviewAvatar(avatar)}
-                      className={`relative rounded-xl p-1 transition-all group aspect-square flex items-center justify-center ${
-                        previewAvatar === avatar 
-                        ? 'bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2' 
+            <div className="flex-1">
+              <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+                <span className="flex-1">Select from Gallery</span>
+                <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full normal-case">8 styles</span>
+              </h4>
+
+              <div className="grid grid-cols-4 gap-4">
+                {PREDEFINED_AVATARS.map((avatar, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setPreviewAvatar(avatar)}
+                    className={`relative rounded-xl p-1 transition-all group aspect-square flex items-center justify-center ${previewAvatar === avatar
+                        ? 'bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2'
                         : 'bg-slate-50 hover:bg-slate-100 hover:ring-2 hover:ring-slate-200 hover:ring-offset-1'
                       }`}
-                    >
-                      <img src={avatar} alt={`Avatar ${index}`} className="w-full h-full rounded-lg object-contain" />
-                      {previewAvatar === avatar && (
-                        <div className="absolute -top-1 -right-1 bg-indigo-600 text-white rounded-full p-0.5 border-2 border-white shadow-sm scale-100 transition-transform">
-                          <Check size={12} />
-                        </div>
-                      )}
-                    </button>
-                  ))}
-                </div>
-             </div>
+                  >
+                    <img src={avatar} alt={`Avatar ${index}`} className="w-full h-full rounded-lg object-contain" />
+                    {previewAvatar === avatar && (
+                      <div className="absolute -top-1 -right-1 bg-indigo-600 text-white rounded-full p-0.5 border-2 border-white shadow-sm scale-100 transition-transform">
+                        <Check size={12} />
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
 
-             <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end space-x-3">
-               <button
-                 onClick={() => setIsAvatarModalOpen(false)}
-                 className="px-5 py-2.5 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
-               >
-                 Cancel
-               </button>
-               <button
-                 onClick={handleSaveAvatar}
-                 className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg shadow-indigo-200 text-sm flex items-center"
-               >
-                 <Check size={16} className="mr-2" />
-                 Save Changes
-               </button>
-             </div>
+            <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end space-x-3">
+              <button
+                onClick={() => setIsAvatarModalOpen(false)}
+                className="px-5 py-2.5 text-slate-500 hover:bg-slate-50 rounded-lg transition-colors text-sm font-medium"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveAvatar}
+                className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg shadow-indigo-200 text-sm flex items-center"
+              >
+                <Check size={16} className="mr-2" />
+                Save Changes
+              </button>
+            </div>
           </div>
         </div>
       </Modal>
 
-      {/* Notifications Modal */}
       <Modal
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         title="Notifications"
+        maxWidth="max-w-xl"
+        className="h-[600px] flex flex-col"
+        noScroll={true} // Handle scrolling internally for better layout control
       >
-        <div className="space-y-1">
-          <div className="flex justify-between items-center mb-4 px-1">
-            <h4 className="text-sm font-medium text-slate-500">
-              {unreadNotificationCount} New
+        <div className="flex flex-col h-full bg-slate-50/50">
+          {/* Header Actions */}
+          <div className="flex justify-between items-center px-6 py-3 bg-white border-b border-slate-100 shrink-0">
+            <h4 className="text-sm font-semibold text-slate-600 flex items-center">
+              Inbox
+              {unreadNotificationCount > 0 && (
+                <span className="ml-2 bg-red-100 text-red-600 px-2 py-0.5 rounded-full text-xs font-bold">
+                  {unreadNotificationCount} New
+                </span>
+              )}
             </h4>
             {unreadNotificationCount > 0 && (
-              <button 
+              <button
                 onClick={clearNotifications}
-                className="text-xs text-indigo-600 hover:text-indigo-700 font-medium"
+                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition-colors"
               >
                 Mark all as read
               </button>
             )}
           </div>
-          
-          <div className="max-h-[60vh] overflow-y-auto space-y-2 -mx-2 px-2">
+
+          {/* Notification List */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
             {myNotifications.length === 0 ? (
-              <div className="text-center py-8 text-slate-400">
-                <Bell size={32} className="mx-auto mb-2 opacity-50" />
-                <p className="text-sm">No notifications yet</p>
+              <div className="flex flex-col items-center justify-center h-full text-slate-400 py-12">
+                <div className="bg-slate-100 p-4 rounded-full mb-3">
+                  <Bell size={28} className="opacity-50 text-slate-500" />
+                </div>
+                <p className="font-medium text-slate-600">All caught up!</p>
+                <p className="text-sm">No new notifications for now.</p>
               </div>
             ) : (
               myNotifications.map(n => (
-                <div 
-                  key={n.id} 
-                  className={`p-3 rounded-lg border flex items-start space-x-3 transition-colors ${n.read ? 'bg-white border-slate-100' : 'bg-indigo-50 border-indigo-100'}`}
+                <div
+                  key={n.id}
+                  className={`relative group p-4 rounded-xl border transition-all duration-200 cursor-pointer ${n.read
+                      ? 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-sm'
+                      : 'bg-white border-indigo-100 shadow-sm ring-1 ring-indigo-50/50'
+                    }`}
                   onClick={() => !n.read && markNotificationRead(n.id)}
                 >
-                  <div className={`p-2 rounded-full shrink-0 ${
-                    n.type === NotificationType.MENTION ? 'bg-blue-100 text-blue-600' :
-                    n.type === NotificationType.ASSIGNMENT ? 'bg-green-100 text-green-600' :
-                    n.type === NotificationType.MISSED_CALL ? 'bg-red-100 text-red-600' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {n.type === NotificationType.MENTION && <AtSign size={16} />}
-                    {n.type === NotificationType.ASSIGNMENT && <CheckCircle2 size={16} />}
-                    {n.type === NotificationType.MISSED_CALL && <PhoneMissed size={16} />}
-                    {n.type === NotificationType.SYSTEM && <Bell size={16} />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex justify-between items-start">
-                      <h5 className={`text-sm font-semibold truncate ${n.read ? 'text-slate-700' : 'text-slate-900'}`}>{n.title}</h5>
-                      <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">
-                        {new Date(n.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                      </span>
+                  <div className="flex items-start space-x-4">
+                    {/* Icon Side */}
+                    <div className={`mt-1 p-2.5 rounded-xl shrink-0 ${n.type === NotificationType.MENTION ? 'bg-blue-100 text-blue-600' :
+                        n.type === NotificationType.ASSIGNMENT ? 'bg-green-100 text-green-600' :
+                          n.type === NotificationType.MISSED_CALL ? 'bg-rose-100 text-rose-600' :
+                            'bg-slate-100 text-slate-600'
+                      }`}>
+                      {n.type === NotificationType.MENTION && <AtSign size={18} />}
+                      {n.type === NotificationType.ASSIGNMENT && <CheckCircle2 size={18} />}
+                      {n.type === NotificationType.MISSED_CALL && <PhoneMissed size={18} />}
+                      {n.type === NotificationType.SYSTEM && <Bell size={18} />}
                     </div>
-                    <p className={`text-xs mt-0.5 line-clamp-2 ${n.read ? 'text-slate-500' : 'text-slate-700'}`}>{n.message}</p>
-                    
-                    {n.linkTo && (
-                       <button className="text-[10px] font-medium text-indigo-600 hover:text-indigo-800 mt-2">
-                          View details
-                       </button>
+
+                    {/* Content Side */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-start mb-1">
+                        <h5 className={`text-sm font-semibold truncate pr-4 ${n.read ? 'text-slate-700' : 'text-slate-900 group-hover:text-indigo-700'}`}>
+                          {n.title}
+                        </h5>
+                        <span className="text-[10px] font-medium text-slate-400 whitespace-nowrap bg-slate-50 px-1.5 py-0.5 rounded border border-slate-100">
+                          {new Date(n.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+
+                      <p className={`text-sm leading-relaxed ${n.read ? 'text-slate-500' : 'text-slate-600'}`}>
+                        {n.message}
+                      </p>
+
+                      {/* Action Footer */}
+                      {n.linkTo && (
+                        <div className="mt-3 flex items-center text-indigo-600 font-medium text-xs group-hover:underline decoration-2 underline-offset-2">
+                          <span>View details</span>
+                          <ChevronRight size={12} className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Unread Indicator Dot */}
+                    {!n.read && (
+                      <div className="absolute top-4 right-4 w-2 h-2 bg-indigo-500 rounded-full"></div>
                     )}
                   </div>
                 </div>
