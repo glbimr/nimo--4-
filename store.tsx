@@ -618,35 +618,48 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const addMessage = async (text: string, recipientId?: string, attachments: Attachment[] = []) => {
     if (!currentUser) return;
-    const newMsg = {
+
+    // Create the message object for internal app state (CamelCase)
+    const optimisticMsg: ChatMessage = {
       id: Date.now().toString() + Math.random(),
-      sender_id: currentUser.id,
-      recipient_id: recipientId || null,
+      senderId: currentUser.id,
+      recipientId: recipientId || undefined,
       text,
       timestamp: Date.now(),
       type: 'text',
       attachments
     };
 
-    // Optimistic update done via subscription
-    // Use RPC to insert encrypted message
+    // 1. Optimistic Update (Immediate Feedback for Sender)
+    setMessages(prev => [...prev, optimisticMsg]);
+
+    const chatId = recipientId || 'general';
+    setLastReadTimestamps(prev => ({ ...prev, [chatId]: Date.now() }));
+
+    // 2. Broadcast to active peers (Instant Delivery for Receivers)
+    if (signalingChannelRef.current && isSignalingConnectedRef.current) {
+      signalingChannelRef.current.send({
+        type: 'broadcast',
+        event: 'chat_message',
+        payload: optimisticMsg
+      }).catch(err => console.error("Broadcast failed", err));
+    }
+
+    // 3. Persist to DB (Encrypted)
     const { error } = await supabase.rpc('send_encrypted_message', {
-      p_id: newMsg.id,
-      p_sender_id: newMsg.sender_id,
-      p_recipient_id: newMsg.recipient_id,
-      p_text: newMsg.text,
-      p_type: newMsg.type,
-      p_attachments: newMsg.attachments,
-      p_timestamp: newMsg.timestamp
+      p_id: optimisticMsg.id,
+      p_sender_id: optimisticMsg.senderId,
+      p_recipient_id: optimisticMsg.recipientId,
+      p_text: optimisticMsg.text,
+      p_type: optimisticMsg.type,
+      p_attachments: optimisticMsg.attachments,
+      p_timestamp: optimisticMsg.timestamp
     });
 
     if (error) {
       console.error("Error sending encrypted message:", error);
       return;
     }
-
-    const chatId = recipientId || 'general';
-    setLastReadTimestamps(prev => ({ ...prev, [chatId]: Date.now() }));
   };
 
   const createGroup = async (name: string, memberIds: string[]): Promise<string | null> => {
