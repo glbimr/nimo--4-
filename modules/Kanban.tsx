@@ -60,7 +60,8 @@ const TaskCardItem: React.FC<{
   onEditSubtask: (task: Task, subtask: SubTask) => void;
   onUpdateTask: (task: Task) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
-}> = ({ task, users, canEdit, onEditTask, onEditSubtask, onUpdateTask, onDragStart }) => {
+  onDropOnTask: (e: React.DragEvent, targetTaskId: string) => void;
+}> = ({ task, users, canEdit, onEditTask, onEditSubtask, onUpdateTask, onDragStart, onDropOnTask }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assigningSubtaskId, setAssigningSubtaskId] = useState<string | null>(null);
@@ -71,7 +72,12 @@ const TaskCardItem: React.FC<{
   const completedSubtasks = task.subtasks.filter(s => s.completed).length;
   const assignee = users.find(u => u.id === task.assigneeId);
   const categoryConfig = CATEGORY_STYLES[task.category] || CATEGORY_STYLES[TaskCategory.TASK];
-  const priorityStyle = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.low;
+  // const priorityStyle = PRIORITY_STYLES[task.priority] || PRIORITY_STYLES.low; // Corrected usage if defined elsewhere, else inline
+
+  // Inline priority style logic as seen in file previously
+  const priorityStyle = task.priority === 'high' ? 'text-red-700 bg-red-50' :
+    task.priority === 'medium' ? 'text-orange-700 bg-orange-50' :
+      'text-slate-600 bg-slate-100';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -114,6 +120,12 @@ const TaskCardItem: React.FC<{
     <div
       draggable={canEdit}
       onDragStart={(e) => onDragStart(e, task.id)}
+      onDragOver={(e) => e.preventDefault()}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDropOnTask(e, task.id);
+      }}
       className={`bg-white p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 transition-all group relative 
         ${canEdit ? 'cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-indigo-100 hover:-translate-y-0.5' : 'cursor-default opacity-90'}
         ${isAssigning ? 'z-20 ring-2 ring-indigo-100 shadow-xl' : 'z-0'}
@@ -344,11 +356,12 @@ interface ColumnProps {
   onEditTask: (task: Task) => void;
   onEditSubtask: (task: Task, subtask: SubTask) => void;
   onUpdateTask: (task: Task) => void;
+  onDropOnTask: (e: React.DragEvent, targetTaskId: string) => void;
 }
 
 const KanbanColumn: React.FC<ColumnProps> = ({
   status, title, tasks, canEdit, users,
-  onDragOver, onDrop, onDragStart, onEditTask, onEditSubtask, onUpdateTask
+  onDragOver, onDrop, onDragStart, onEditTask, onEditSubtask, onUpdateTask, onDropOnTask
 }) => {
   return (
     <div
@@ -367,7 +380,15 @@ const KanbanColumn: React.FC<ColumnProps> = ({
           {tasks.length}
         </span>
       </div>
-      <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-2 custom-scrollbar">
+      <div
+        className="space-y-4 flex-1 overflow-y-auto pr-1 pb-2 custom-scrollbar no-scrollbar"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        <style>{`
+          .no-scrollbar::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
         {tasks.map(task => (
           <TaskCardItem
             key={task.id}
@@ -378,6 +399,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
             onEditSubtask={onEditSubtask}
             onUpdateTask={onUpdateTask}
             onDragStart={onDragStart}
+            onDropOnTask={onDropOnTask}
           />
         ))}
         {tasks.length === 0 && canEdit && (
@@ -1469,7 +1491,44 @@ export const KanbanBoard: React.FC = () => {
     else if (filterAssignee !== 'all') matchesAssignee = t.assigneeId === filterAssignee;
 
     return matchesSearch && matchesCategory && matchesProject && matchesAssignee;
+  }).sort((a, b) => {
+    const orderA = a.order ?? 0;
+    const orderB = b.order ?? 0;
+    if (orderA !== orderB) return orderA - orderB;
+    return b.createdAt - a.createdAt;
   });
+
+  const handleDropOnTask = (e: React.DragEvent, targetTaskId: string) => {
+    e.preventDefault();
+    if (!draggedTaskId || draggedTaskId === targetTaskId) return;
+
+    const targetTask = tasks.find(t => t.id === targetTaskId);
+    if (!targetTask) return;
+
+    const targetStatus = targetTask.status;
+
+    // Get all tasks in target column, sorted by current order
+    const columnTasks = tasks
+      .filter(t => t.status === targetStatus)
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || b.createdAt - a.createdAt);
+
+    const targetIndex = columnTasks.findIndex(t => t.id === targetTaskId);
+    if (targetIndex === -1) return;
+
+    // Calculate new order to place ABOVE target
+    let newOrder = 0;
+    const prevTask = columnTasks[targetIndex - 1];
+    const currentTarget = columnTasks[targetIndex];
+
+    if (!prevTask) {
+      newOrder = (currentTarget.order ?? 0) - 1000;
+    } else {
+      newOrder = ((prevTask.order ?? 0) + (currentTarget.order ?? 0)) / 2;
+    }
+
+    moveTask(draggedTaskId, targetStatus, newOrder);
+    setDraggedTaskId(null);
+  };
 
   const todoTasks = filteredTasks.filter(t => t.status === TaskStatus.TODO);
   const inProgressTasks = filteredTasks.filter(t => t.status === TaskStatus.IN_PROGRESS);
@@ -1589,6 +1648,7 @@ export const KanbanBoard: React.FC = () => {
                 onEditTask={openEditTaskModal}
                 onEditSubtask={openEditSubtaskModal}
                 onUpdateTask={updateTask}
+                onDropOnTask={handleDropOnTask}
               />
             </div>
             <div className="flex-1 min-w-[300px] h-full">
@@ -1604,6 +1664,7 @@ export const KanbanBoard: React.FC = () => {
                 onEditTask={openEditTaskModal}
                 onEditSubtask={openEditSubtaskModal}
                 onUpdateTask={updateTask}
+                onDropOnTask={handleDropOnTask}
               />
             </div>
             <div className="flex-1 min-w-[300px] h-full">
@@ -1619,6 +1680,7 @@ export const KanbanBoard: React.FC = () => {
                 onEditTask={openEditTaskModal}
                 onEditSubtask={openEditSubtaskModal}
                 onUpdateTask={updateTask}
+                onDropOnTask={handleDropOnTask}
               />
             </div>
           </div>

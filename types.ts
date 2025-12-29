@@ -107,6 +107,7 @@ export interface Task {
   comments: Comment[];
   dueDate?: string;
   createdAt: number;
+  order?: number;
 }
 
 export interface Project {
