@@ -542,7 +542,7 @@ const TaskEditor: React.FC<{
   projectId: string;
   readOnly: boolean;
 }> = ({ task, onClose, projectId, readOnly }) => {
-  const { addTask, updateTask, users, triggerNotification, currentUser, deleteUser } = useApp();
+  const { addTask, updateTask, moveTask, users, triggerNotification, currentUser, deleteUser } = useApp();
   const [formData, setFormData] = useState<Task>(task || {
     id: 't-' + Date.now(),
     projectId,
@@ -825,7 +825,13 @@ const TaskEditor: React.FC<{
                   <select
                     disabled={readOnly}
                     value={formData.status}
-                    onChange={e => setFormData({ ...formData, status: e.target.value as TaskStatus })}
+                    onChange={e => {
+                      const newStatus = e.target.value as TaskStatus;
+                      setFormData({ ...formData, status: newStatus });
+                      if (task) {
+                        moveTask(task.id, newStatus);
+                      }
+                    }}
                     className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
                   >
                     <option value={TaskStatus.TODO}>To Do</option>
