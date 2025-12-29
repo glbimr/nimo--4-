@@ -209,7 +209,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { data: taskData } = await supabase.from('tasks').select('*');
       if (taskData) setTasks(taskData.map(mapTaskFromDB));
 
-      const { data: msgData } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
+      const { data: msgData } = await supabase.from('decrypted_messages').select('*').order('timestamp', { ascending: true });
       if (msgData) setMessages(msgData.map(mapMessageFromDB));
 
       const { data: groupData } = await supabase.from('groups').select('*');
@@ -263,8 +263,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (payload.eventType === 'UPDATE') setTasks(prev => prev.map(t => t.id === payload.new.id ? mapTaskFromDB(payload.new) : t));
         if (payload.eventType === 'DELETE') setTasks(prev => prev.filter(t => t.id !== payload.old.id));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
-        if (payload.eventType === 'INSERT') setMessages(prev => [...prev, mapMessageFromDB(payload.new)]);
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async payload => {
+        if (payload.eventType === 'INSERT') {
+          // Fetch the decrypted message from the view since the real-time payload is encrypted
+          const { data } = await supabase.from('decrypted_messages').select('*').eq('id', payload.new.id).single();
+          if (data) {
+            setMessages(prev => [...prev, mapMessageFromDB(data)]);
+          }
+        }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
         if (payload.eventType === 'UPDATE') {
@@ -623,7 +629,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     // Optimistic update done via subscription
-    await supabase.from('messages').insert(newMsg);
+    // Use RPC to insert encrypted message
+    const { error } = await supabase.rpc('send_encrypted_message', {
+      p_id: newMsg.id,
+      p_sender_id: newMsg.sender_id,
+      p_recipient_id: newMsg.recipient_id,
+      p_text: newMsg.text,
+      p_type: newMsg.type,
+      p_attachments: newMsg.attachments,
+      p_timestamp: newMsg.timestamp
+    });
+
+    if (error) {
+      console.error("Error sending encrypted message:", error);
+      return;
+    }
 
     const chatId = recipientId || 'general';
     setLastReadTimestamps(prev => ({ ...prev, [chatId]: Date.now() }));
