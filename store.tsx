@@ -1045,10 +1045,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({
           video: {
+            // @ts-ignore
+            cursor: 'always',
             frameRate: { ideal: 30, max: 60 }
           }
         });
         const screenTrack = displayStream.getVideoTracks()[0];
+
+        // Optimize for real-time motion and smoothness to reduce latency
+        if ('contentHint' in screenTrack) {
+          (screenTrack as any).contentHint = 'motion';
+        }
 
         // If camera is on, stop it first (mutually exclusive video track for simplicity)
         if (isCameraOn) {
