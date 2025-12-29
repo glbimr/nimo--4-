@@ -14,7 +14,7 @@ interface AppContextType {
   incomingCall: IncomingCall | null;
   isInCall: boolean;
   activeCallData: { participantIds: string[] } | null;
-  
+
   // Chat History Management
   deletedMessageIds: Set<string>;
   clearChatHistory: (targetId: string) => Promise<void>;
@@ -23,7 +23,7 @@ interface AppContextType {
   localStream: MediaStream | null;
   remoteStreams: Map<string, MediaStream>; // Map of userId -> MediaStream
   isScreenSharing: boolean;
-  
+
   // Media Controls
   isMicOn: boolean;
   isCameraOn: boolean;
@@ -46,7 +46,7 @@ interface AppContextType {
   addProject: (name: string, description: string) => void;
   updateProject: (p: Project) => void;
   deleteProject: (id: string) => Promise<void>;
-  
+
   // Notification & Unread Logic
   triggerNotification: (recipientId: string, type: NotificationType, title: string, message: string, linkTo?: string) => void;
   markNotificationRead: (id: string) => void;
@@ -93,17 +93,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [groups, setGroups] = useState<Group[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [deletedMessageIds, setDeletedMessageIds] = useState<Set<string>>(new Set());
-  
+
   // Call State
   const [incomingCall, setIncomingCall] = useState<IncomingCall | null>(null);
   const [isInCall, setIsInCall] = useState(false);
   const [activeCallData, setActiveCallData] = useState<{ participantIds: string[] } | null>(null);
-  
+
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStreams, setRemoteStreams] = useState<Map<string, MediaStream>>(new Map());
-  
+
   const [isScreenSharing, setIsScreenSharing] = useState(false);
-  
+
   // Media Controls State
   const [isMicOn, setIsMicOn] = useState(false);
   const [isCameraOn, setIsCameraOn] = useState(false);
@@ -114,10 +114,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const signalingChannelRef = useRef<RealtimeChannel | null>(null);
   const isSignalingConnectedRef = useRef(false);
-  
+
   // Ref to track incoming call state within event listeners without dependency loops
   const incomingCallRef = useRef<IncomingCall | null>(null);
-  
+
   // Refs for State Access in Event Listeners to avoid dependency cycles / re-subscriptions
   const isInCallRef = useRef(isInCall);
   const activeCallDataRef = useRef(activeCallData);
@@ -129,51 +129,51 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Data Mappers (DB Snake_case to App CamelCase) ---
   const mapUserFromDB = (u: any): User => ({
-      ...u,
-      isOnline: u.is_online,
-      projectAccess: u.project_access,
-      dashboardConfig: u.dashboard_config
+    ...u,
+    isOnline: u.is_online,
+    projectAccess: u.project_access,
+    dashboardConfig: u.dashboard_config
   });
   const mapTaskFromDB = (t: any): Task => ({
-      ...t,
-      projectId: t.project_id,
-      assigneeId: t.assignee_id,
-      dueDate: t.due_date,
-      createdAt: t.created_at
+    ...t,
+    projectId: t.project_id,
+    assigneeId: t.assignee_id,
+    dueDate: t.due_date,
+    createdAt: t.created_at
   });
   const mapProjectFromDB = (p: any): Project => ({
-      id: p.id,
-      name: p.name,
-      description: p.description,
-      memberIds: p.member_ids || [],
-      attachments: [], 
-      comments: []     
+    id: p.id,
+    name: p.name,
+    description: p.description,
+    memberIds: p.member_ids || [],
+    attachments: [],
+    comments: []
   });
   const mapGroupFromDB = (g: any): Group => ({
-      ...g,
-      memberIds: g.member_ids,
-      createdBy: g.created_by,
-      createdAt: g.created_at
+    ...g,
+    memberIds: g.member_ids,
+    createdBy: g.created_by,
+    createdAt: g.created_at
   });
   const mapMessageFromDB = (m: any): ChatMessage => ({
-      id: m.id,
-      senderId: m.sender_id,
-      recipientId: m.recipient_id,
-      text: m.text,
-      timestamp: m.timestamp,
-      type: m.type,
-      attachments: m.attachments
+    id: m.id,
+    senderId: m.sender_id,
+    recipientId: m.recipient_id,
+    text: m.text,
+    timestamp: m.timestamp,
+    type: m.type,
+    attachments: m.attachments
   });
   const mapNotificationFromDB = (n: any): Notification => ({
-      id: n.id,
-      recipientId: n.recipient_id,
-      senderId: n.sender_id,
-      type: n.type,
-      title: n.title,
-      message: n.message,
-      timestamp: n.timestamp,
-      read: n.read,
-      linkTo: n.link_to
+    id: n.id,
+    recipientId: n.recipient_id,
+    senderId: n.sender_id,
+    type: n.type,
+    title: n.title,
+    message: n.message,
+    timestamp: n.timestamp,
+    read: n.read,
+    linkTo: n.link_to
   });
 
   // Keep Refs in sync with state
@@ -204,13 +204,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       const { data: taskData } = await supabase.from('tasks').select('*');
       if (taskData) setTasks(taskData.map(mapTaskFromDB));
-      
+
       const { data: msgData } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
       if (msgData) setMessages(msgData.map(mapMessageFromDB));
 
       const { data: groupData } = await supabase.from('groups').select('*');
       if (groupData) setGroups(groupData.map(mapGroupFromDB));
-      
+
       const { data: notifData } = await supabase.from('notifications').select('*').order('timestamp', { ascending: false });
       if (notifData) setNotifications(notifData.map(mapNotificationFromDB));
     };
@@ -220,34 +220,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- 1.1 Fetch Deleted Messages ---
   useEffect(() => {
-      if (currentUser) {
-          const fetchDeleted = async () => {
-             const { data } = await supabase.from('deleted_messages').select('message_id').eq('user_id', currentUser.id);
-             if (data) {
-                 setDeletedMessageIds(new Set(data.map(d => d.message_id)));
-             }
-          };
-          fetchDeleted();
-      } else {
-          setDeletedMessageIds(new Set());
-      }
+    if (currentUser) {
+      const fetchDeleted = async () => {
+        const { data } = await supabase.from('deleted_messages').select('message_id').eq('user_id', currentUser.id);
+        if (data) {
+          setDeletedMessageIds(new Set(data.map(d => d.message_id)));
+        }
+      };
+      fetchDeleted();
+    } else {
+      setDeletedMessageIds(new Set());
+    }
   }, [currentUser]);
 
   // --- 1.5 Update Online Status on Mount/Restore ---
   useEffect(() => {
     if (currentUser) {
-        supabase.from('users').update({ is_online: true }).eq('id', currentUser.id);
+      supabase.from('users').update({ is_online: true }).eq('id', currentUser.id);
     }
   }, []);
 
   // --- 1.6 Sync Current User with Users List (Refresh Data) ---
   useEffect(() => {
     if (currentUser && users.length > 0) {
-        const freshUser = users.find(u => u.id === currentUser.id);
-        if (freshUser && JSON.stringify(freshUser) !== JSON.stringify(currentUser)) {
-             setCurrentUser(freshUser);
-             localStorage.setItem('nexus_pm_user', JSON.stringify(freshUser));
-        }
+      const freshUser = users.find(u => u.id === currentUser.id);
+      if (freshUser && JSON.stringify(freshUser) !== JSON.stringify(currentUser)) {
+        setCurrentUser(freshUser);
+        localStorage.setItem('nexus_pm_user', JSON.stringify(freshUser));
+      }
     }
   }, [users, currentUser]);
 
@@ -263,23 +263,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         if (payload.eventType === 'INSERT') setMessages(prev => [...prev, mapMessageFromDB(payload.new)]);
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
-         if (payload.eventType === 'UPDATE') {
-             setUsers(prev => prev.map(u => u.id === payload.new.id ? mapUserFromDB(payload.new) : u));
-         }
-         if (payload.eventType === 'INSERT') setUsers(prev => [...prev, mapUserFromDB(payload.new)]);
-         if (payload.eventType === 'DELETE') setUsers(prev => prev.filter(u => u.id !== payload.old.id));
+        if (payload.eventType === 'UPDATE') {
+          setUsers(prev => prev.map(u => u.id === payload.new.id ? mapUserFromDB(payload.new) : u));
+        }
+        if (payload.eventType === 'INSERT') setUsers(prev => [...prev, mapUserFromDB(payload.new)]);
+        if (payload.eventType === 'DELETE') setUsers(prev => prev.filter(u => u.id !== payload.old.id));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'notifications' }, payload => {
-          if (payload.eventType === 'INSERT') setNotifications(prev => [mapNotificationFromDB(payload.new), ...prev]);
-          if (payload.eventType === 'UPDATE') setNotifications(prev => prev.map(n => n.id === payload.new.id ? mapNotificationFromDB(payload.new) : n));
+        if (payload.eventType === 'INSERT') setNotifications(prev => [mapNotificationFromDB(payload.new), ...prev]);
+        if (payload.eventType === 'UPDATE') setNotifications(prev => prev.map(n => n.id === payload.new.id ? mapNotificationFromDB(payload.new) : n));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, payload => {
-          if (payload.eventType === 'INSERT') setProjects(prev => [...prev, mapProjectFromDB(payload.new)]);
-          if (payload.eventType === 'UPDATE') setProjects(prev => prev.map(p => p.id === payload.new.id ? mapProjectFromDB(payload.new) : p));
-          if (payload.eventType === 'DELETE') setProjects(prev => prev.filter(p => p.id !== payload.old.id));
+        if (payload.eventType === 'INSERT') setProjects(prev => [...prev, mapProjectFromDB(payload.new)]);
+        if (payload.eventType === 'UPDATE') setProjects(prev => prev.map(p => p.id === payload.new.id ? mapProjectFromDB(payload.new) : p));
+        if (payload.eventType === 'DELETE') setProjects(prev => prev.filter(p => p.id !== payload.old.id));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'groups' }, payload => {
-          if (payload.eventType === 'INSERT') setGroups(prev => [...prev, mapGroupFromDB(payload.new)]);
+        if (payload.eventType === 'INSERT') setGroups(prev => [...prev, mapGroupFromDB(payload.new)]);
       })
       .subscribe();
 
@@ -295,7 +295,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     // Use a unique channel for signaling
     const channel = supabase.channel('signaling');
     signalingChannelRef.current = channel;
-    
+
     channel
       .on('broadcast', { event: 'signal' }, async ({ payload }) => {
         const { type, senderId, recipientId, payload: signalPayload } = payload as SignalData;
@@ -309,113 +309,113 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const currentActiveCallData = activeCallDataRef.current;
 
         switch (type) {
-            case 'USER_ONLINE':
-              break;
-    
-            case 'OFFER':
-              // If busy and not part of the current call (renegotiation), ignore
-              if (currentIsInCall && !currentActiveCallData?.participantIds.includes(senderId)) return; 
-              
-              if (currentIsInCall && currentActiveCallData?.participantIds.includes(senderId)) {
-                  // Renegotiation handling
-                  const pc = peerConnectionsRef.current.get(senderId);
-                  if (pc) {
-                      await pc.setRemoteDescription(new RTCSessionDescription(signalPayload.sdp));
-                      const answer = await pc.createAnswer();
-                      await pc.setLocalDescription(answer);
-                      sendSignal('ANSWER', senderId, { sdp: { type: answer.type, sdp: answer.sdp } });
-                  }
-                  return;
-              }
+          case 'USER_ONLINE':
+            break;
 
-              setIncomingCall({
-                callerId: senderId,
+          case 'OFFER':
+            // If busy and not part of the current call (renegotiation), ignore
+            if (currentIsInCall && !currentActiveCallData?.participantIds.includes(senderId)) return;
+
+            if (currentIsInCall && currentActiveCallData?.participantIds.includes(senderId)) {
+              // Renegotiation handling
+              const pc = peerConnectionsRef.current.get(senderId);
+              if (pc) {
+                await pc.setRemoteDescription(new RTCSessionDescription(signalPayload.sdp));
+                const answer = await pc.createAnswer();
+                await pc.setLocalDescription(answer);
+                sendSignal('ANSWER', senderId, { sdp: { type: answer.type, sdp: answer.sdp } });
+              }
+              return;
+            }
+
+            setIncomingCall({
+              callerId: senderId,
+              timestamp: Date.now(),
+              offer: signalPayload.sdp
+            });
+            break;
+
+          case 'ANSWER':
+            {
+              const pc = peerConnectionsRef.current.get(senderId);
+              if (pc) {
+                await pc.setRemoteDescription(new RTCSessionDescription(signalPayload.sdp));
+                setActiveCallData(prev => {
+                  if (!prev) return null;
+                  if (prev.participantIds.includes(senderId)) return prev;
+                  return { ...prev, participantIds: [...prev.participantIds, senderId] };
+                });
+              }
+            }
+            break;
+
+          case 'CANDIDATE':
+            {
+              const pc = peerConnectionsRef.current.get(senderId);
+              if (pc && signalPayload.candidate) {
+                try {
+                  await pc.addIceCandidate(new RTCIceCandidate(signalPayload.candidate));
+                } catch (e) {
+                  console.error("Error adding ice candidate", e);
+                }
+              }
+            }
+            break;
+
+          case 'HANGUP':
+            // Check if we have a pending incoming call from this sender (Missed Call Scenario)
+            if (incomingCallRef.current && incomingCallRef.current.callerId === senderId) {
+              // The caller hung up before we answered
+              const usersList = usersRef.current;
+              const caller = usersList.find(u => u.id === senderId);
+              const callerName = caller ? caller.name : 'Unknown User';
+
+              // 1. Create Missed Call Notification
+              const { error: notifError } = await supabase.from('notifications').insert({
+                id: 'n-' + Date.now() + Math.random(),
+                recipient_id: currentUser.id,
+                sender_id: senderId,
+                type: NotificationType.MISSED_CALL,
+                title: 'Missed Call',
+                message: `You missed a call from ${callerName}`,
                 timestamp: Date.now(),
-                offer: signalPayload.sdp
+                read: false,
+                link_to: senderId
               });
-              break;
-    
-            case 'ANSWER':
-              {
-                const pc = peerConnectionsRef.current.get(senderId);
-                if (pc) {
-                  await pc.setRemoteDescription(new RTCSessionDescription(signalPayload.sdp));
-                  setActiveCallData(prev => {
-                      if (!prev) return null;
-                      if (prev.participantIds.includes(senderId)) return prev;
-                      return { ...prev, participantIds: [...prev.participantIds, senderId] };
-                  });
-                }
-              }
-              break;
-    
-            case 'CANDIDATE':
-              {
-                const pc = peerConnectionsRef.current.get(senderId);
-                if (pc && signalPayload.candidate) {
-                  try {
-                    await pc.addIceCandidate(new RTCIceCandidate(signalPayload.candidate));
-                  } catch (e) {
-                    console.error("Error adding ice candidate", e);
-                  }
-                }
-              }
-              break;
-    
-            case 'HANGUP':
-              // Check if we have a pending incoming call from this sender (Missed Call Scenario)
-              if (incomingCallRef.current && incomingCallRef.current.callerId === senderId) {
-                  // The caller hung up before we answered
-                  const usersList = usersRef.current;
-                  const caller = usersList.find(u => u.id === senderId);
-                  const callerName = caller ? caller.name : 'Unknown User';
-                  
-                  // 1. Create Missed Call Notification
-                  const { error: notifError } = await supabase.from('notifications').insert({
-                    id: 'n-' + Date.now() + Math.random(),
-                    recipient_id: currentUser.id,
-                    sender_id: senderId,
-                    type: NotificationType.MISSED_CALL,
-                    title: 'Missed Call',
-                    message: `You missed a call from ${callerName}`,
-                    timestamp: Date.now(),
-                    read: false,
-                    link_to: senderId
-                  });
-                  if (notifError) console.error("Error creating missed call notification:", notifError);
+              if (notifError) console.error("Error creating missed call notification:", notifError);
 
-                  // 2. Create Missed Call Chat Message
-                  const { error: msgError } = await supabase.from('messages').insert({
-                    id: 'm-' + Date.now() + Math.random(),
-                    sender_id: senderId,
-                    recipient_id: currentUser.id,
-                    text: 'Missed Call',
-                    timestamp: Date.now(),
-                    type: 'missed_call',
-                    attachments: []
-                  });
-                  if (msgError) console.error("Error creating missed call message:", msgError);
-                  
-                  setIncomingCall(null);
-              }
+              // 2. Create Missed Call Chat Message
+              const { error: msgError } = await supabase.from('messages').insert({
+                id: 'm-' + Date.now() + Math.random(),
+                sender_id: senderId,
+                recipient_id: currentUser.id,
+                text: 'Missed Call',
+                timestamp: Date.now(),
+                type: 'missed_call',
+                attachments: []
+              });
+              if (msgError) console.error("Error creating missed call message:", msgError);
 
-              handleRemoteHangup(senderId);
-              break;
-          }
+              setIncomingCall(null);
+            }
+
+            handleRemoteHangup(senderId);
+            break;
+        }
       })
       .subscribe((status) => {
-          if (status === 'SUBSCRIBED') {
-              isSignalingConnectedRef.current = true;
-              // Announce online with a slight delay to ensure readiness
-              setTimeout(() => sendSignal('USER_ONLINE', undefined, {}), 100);
-          } else {
-              isSignalingConnectedRef.current = false;
-          }
+        if (status === 'SUBSCRIBED') {
+          isSignalingConnectedRef.current = true;
+          // Announce online with a slight delay to ensure readiness
+          setTimeout(() => sendSignal('USER_ONLINE', undefined, {}), 100);
+        } else {
+          isSignalingConnectedRef.current = false;
+        }
       });
 
     return () => {
-        isSignalingConnectedRef.current = false;
-        if (signalingChannelRef.current) supabase.removeChannel(signalingChannelRef.current);
+      isSignalingConnectedRef.current = false;
+      if (signalingChannelRef.current) supabase.removeChannel(signalingChannelRef.current);
     };
   }, [currentUser]); // DEPENDENCY REDUCED: No longer depends on isInCall or activeCallData
 
@@ -424,20 +424,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (signalingChannelRef.current && currentUser) {
       // STRICT CHECK: Only send if subscribed via WebSocket to avoid "falling back to REST API" warnings
       if (!isSignalingConnectedRef.current) {
-          // Silently drop if not connected - fallback behavior causes console noise
-          return; 
+        // Silently drop if not connected - fallback behavior causes console noise
+        return;
       }
 
       try {
         await signalingChannelRef.current.send({
-            type: 'broadcast',
-            event: 'signal',
-            payload: {
-                type,
-                senderId: currentUser.id,
-                recipientId,
-                payload
-            }
+          type: 'broadcast',
+          event: 'signal',
+          payload: {
+            type,
+            senderId: currentUser.id,
+            recipientId,
+            payload
+          }
         });
       } catch (err) {
         console.warn("Error sending signal:", err);
@@ -455,7 +455,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const logout = async () => {
     if (currentUser) {
-        await supabase.from('users').update({ is_online: false }).eq('id', currentUser.id);
+      await supabase.from('users').update({ is_online: false }).eq('id', currentUser.id);
     }
     localStorage.removeItem('nexus_pm_user');
     setCurrentUser(null);
@@ -470,81 +470,81 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addUser = async (user: User) => {
     // Create in public.users table
     const { error } = await supabase.from('users').insert({
-        id: user.id,
-        name: user.name,
-        username: user.username,
-        password: user.password,
-        role: user.role,
-        avatar: user.avatar,
-        project_access: user.projectAccess,
-        dashboard_config: user.dashboardConfig
+      id: user.id,
+      name: user.name,
+      username: user.username,
+      password: user.password,
+      role: user.role,
+      avatar: user.avatar,
+      project_access: user.projectAccess,
+      dashboard_config: user.dashboardConfig
     });
     if (error) console.error("Add user failed:", error);
   };
 
   const updateUser = async (u: User) => {
     const { error } = await supabase.from('users').update({
-        name: u.name,
-        username: u.username,
-        password: u.password,
-        role: u.role,
-        avatar: u.avatar,
-        project_access: u.projectAccess,
-        dashboard_config: u.dashboardConfig
+      name: u.name,
+      username: u.username,
+      password: u.password,
+      role: u.role,
+      avatar: u.avatar,
+      project_access: u.projectAccess,
+      dashboard_config: u.dashboardConfig
     }).eq('id', u.id);
     if (error) console.error("Update user failed", error);
-    
+
     if (currentUser?.id === u.id) {
-        setCurrentUser(u);
-        localStorage.setItem('nexus_pm_user', JSON.stringify(u));
+      setCurrentUser(u);
+      localStorage.setItem('nexus_pm_user', JSON.stringify(u));
     }
   };
 
   const deleteUser = async (id: string) => {
-      await supabase.from('users').delete().eq('id', id);
+    await supabase.from('users').delete().eq('id', id);
   };
 
   const addTask = async (t: Task) => {
-      await supabase.from('tasks').insert({
-          id: t.id,
-          project_id: t.projectId,
-          title: t.title,
-          description: t.description,
-          status: t.status,
-          category: t.category,
-          assignee_id: t.assigneeId,
-          priority: t.priority,
-          due_date: t.dueDate,
-          attachments: t.attachments,
-          comments: t.comments,
-          subtasks: t.subtasks,
-          created_at: t.createdAt
-      });
+    await supabase.from('tasks').insert({
+      id: t.id,
+      project_id: t.projectId,
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      category: t.category,
+      assignee_id: t.assigneeId,
+      priority: t.priority,
+      due_date: t.dueDate,
+      attachments: t.attachments,
+      comments: t.comments,
+      subtasks: t.subtasks,
+      created_at: t.createdAt
+    });
   };
 
   const updateTask = async (t: Task) => {
-      await supabase.from('tasks').update({
-          title: t.title,
-          description: t.description,
-          status: t.status,
-          category: t.category,
-          assignee_id: t.assigneeId || null, // Explicitly set null if undefined to unassign
-          priority: t.priority,
-          due_date: t.dueDate,
-          attachments: t.attachments,
-          comments: t.comments,
-          subtasks: t.subtasks
-      }).eq('id', t.id);
+    await supabase.from('tasks').update({
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      category: t.category,
+      assignee_id: t.assigneeId || null, // Explicitly set null if undefined to unassign
+      priority: t.priority,
+      due_date: t.dueDate,
+      attachments: t.attachments,
+      comments: t.comments,
+      subtasks: t.subtasks
+    }).eq('id', t.id);
   };
 
   const deleteTask = async (id: string) => {
-      await supabase.from('tasks').delete().eq('id', id);
+    await supabase.from('tasks').delete().eq('id', id);
   };
 
   const moveTask = async (id: string, s: TaskStatus) => {
-      await supabase.from('tasks').update({ status: s }).eq('id', id);
+    await supabase.from('tasks').update({ status: s }).eq('id', id);
   };
-  
+
   const addMessage = async (text: string, recipientId?: string, attachments: Attachment[] = []) => {
     if (!currentUser) return;
     const newMsg = {
@@ -556,10 +556,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       type: 'text',
       attachments
     };
-    
+
     // Optimistic update done via subscription
     await supabase.from('messages').insert(newMsg);
-    
+
     const chatId = recipientId || 'general';
     setLastReadTimestamps(prev => ({ ...prev, [chatId]: Date.now() }));
   };
@@ -575,10 +575,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       created_by: currentUser.id,
       created_at: Date.now()
     });
-    
+
     if (error) {
-        console.error("Error creating group:", error);
-        return null;
+      console.error("Error creating group:", error);
+      return null;
     }
     return newGroupId;
   };
@@ -586,62 +586,62 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const addProject = async (name: string, description: string) => {
     const newProjectId = 'p-' + Date.now();
     // Use only schema-defined columns to prevent errors
-    const { error } = await supabase.from('projects').insert({ 
-        id: newProjectId, 
-        name, 
-        description, 
-        member_ids: []
+    const { error } = await supabase.from('projects').insert({
+      id: newProjectId,
+      name,
+      description,
+      member_ids: []
     });
-    
+
     if (error) {
-        console.error("Error creating project:", error);
-        return;
+      console.error("Error creating project:", error);
+      return;
     }
-    
+
     if (currentUser) {
-        const updatedAccess = { ...currentUser.projectAccess, [newProjectId]: 'write' };
-        updateUser({ ...currentUser, projectAccess: updatedAccess as any });
+      const updatedAccess = { ...currentUser.projectAccess, [newProjectId]: 'write' };
+      updateUser({ ...currentUser, projectAccess: updatedAccess as any });
     }
   };
-  
+
   const updateProject = async (p: Project) => {
-      // Use only schema-defined columns
-      const { error } = await supabase.from('projects').update({
-          name: p.name,
-          description: p.description,
-          member_ids: p.memberIds
-      }).eq('id', p.id);
-      
-      if (error) console.error("Error updating project:", error);
+    // Use only schema-defined columns
+    const { error } = await supabase.from('projects').update({
+      name: p.name,
+      description: p.description,
+      member_ids: p.memberIds
+    }).eq('id', p.id);
+
+    if (error) console.error("Error updating project:", error);
   };
 
   const deleteProject = async (id: string) => {
-      // Optimistic update
-      const oldProjects = [...projects];
-      setProjects(prev => prev.filter(p => p.id !== id));
-      
-      try {
-          // 1. Delete tasks (Manual cascade since DB might not have ON DELETE CASCADE)
-          const { error: taskError } = await supabase.from('tasks').delete().eq('project_id', id);
-          if (taskError) {
-              console.warn("Project tasks deletion issue (proceeding with project delete):", taskError.message);
-          }
+    // Optimistic update
+    const oldProjects = [...projects];
+    setProjects(prev => prev.filter(p => p.id !== id));
 
-          // 2. Delete project
-          const { error: projectError } = await supabase.from('projects').delete().eq('id', id);
-          
-          if (projectError) {
-              throw new Error(projectError.message);
-          }
-      } catch (error: any) {
-          console.error("Error deleting project:", error);
-          alert("Failed to delete project. " + (error.message || "Unknown error"));
-          // Restore optimistic update
-          setProjects(oldProjects);
-          // Refresh from DB to be safe
-          const { data } = await supabase.from('projects').select('*');
-          if (data) setProjects(data.map(mapProjectFromDB));
+    try {
+      // 1. Delete tasks (Manual cascade since DB might not have ON DELETE CASCADE)
+      const { error: taskError } = await supabase.from('tasks').delete().eq('project_id', id);
+      if (taskError) {
+        console.warn("Project tasks deletion issue (proceeding with project delete):", taskError.message);
       }
+
+      // 2. Delete project
+      const { error: projectError } = await supabase.from('projects').delete().eq('id', id);
+
+      if (projectError) {
+        throw new Error(projectError.message);
+      }
+    } catch (error: any) {
+      console.error("Error deleting project:", error);
+      alert("Failed to delete project. " + (error.message || "Unknown error"));
+      // Restore optimistic update
+      setProjects(oldProjects);
+      // Refresh from DB to be safe
+      const { data } = await supabase.from('projects').select('*');
+      if (data) setProjects(data.map(mapProjectFromDB));
+    }
   };
 
   const triggerNotification = async (recipientId: string, type: NotificationType, title: string, message: string, linkTo?: string) => {
@@ -660,29 +660,29 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markNotificationRead = async (id: string) => {
-      await supabase.from('notifications').update({ read: true }).eq('id', id);
+    await supabase.from('notifications').update({ read: true }).eq('id', id);
   };
 
-  const clearNotifications = async () => { 
-      if (!currentUser) return; 
-      await supabase.from('notifications').update({ read: true }).eq('recipient_id', currentUser.id);
+  const clearNotifications = async () => {
+    if (!currentUser) return;
+    await supabase.from('notifications').update({ read: true }).eq('recipient_id', currentUser.id);
   };
-  
+
   const markChatRead = (chatId: string) => setLastReadTimestamps(prev => ({ ...prev, [chatId]: Date.now() }));
-  
+
   const getUnreadCount = (chatId: string) => {
     if (!currentUser) return 0;
     const lastRead = lastReadTimestamps[chatId] || 0;
     return messages.filter(m => {
       if (deletedMessageIds.has(m.id)) return false; // Ignore deleted messages
-      const isRelevant = 
+      const isRelevant =
         (chatId !== 'general' && !chatId.startsWith('g-') && m.senderId === chatId && m.recipientId === currentUser.id) ||
         (chatId.startsWith('g-') && m.recipientId === chatId && m.senderId !== currentUser.id) ||
         (chatId === 'general' && !m.recipientId && m.senderId !== currentUser.id);
       return isRelevant && m.timestamp > lastRead;
     }).length;
   };
-  
+
   const totalUnreadChatCount = React.useMemo(() => {
     if (!currentUser) return 0;
     let count = getUnreadCount('general');
@@ -693,42 +693,42 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // --- Clear Chat History Logic ---
   const clearChatHistory = async (targetId: string) => {
-      if (!currentUser) return;
-      
-      const isGroup = groups.some(g => g.id === targetId);
+    if (!currentUser) return;
 
-      const msgsToDelete = messages.filter(m => {
-          if (deletedMessageIds.has(m.id)) return false; // Already deleted
-          
-          if (targetId === 'general') {
-             return !m.recipientId; // Global chat
-          }
-          if (isGroup) {
-              return m.recipientId === targetId;
-          } else {
-              // 1:1 Chat
-              return (m.senderId === currentUser.id && m.recipientId === targetId) ||
-                     (m.senderId === targetId && m.recipientId === currentUser.id);
-          }
-      });
+    const isGroup = groups.some(g => g.id === targetId);
 
-      if (msgsToDelete.length === 0) return;
+    const msgsToDelete = messages.filter(m => {
+      if (deletedMessageIds.has(m.id)) return false; // Already deleted
 
-      const newDeletedIds = new Set(deletedMessageIds);
-      const recordsToInsert = msgsToDelete.map(m => {
-          newDeletedIds.add(m.id);
-          return {
-              id: 'dm-' + Date.now() + Math.random().toString(36).substr(2, 9),
-              user_id: currentUser.id,
-              message_id: m.id,
-              timestamp: Date.now()
-          };
-      });
+      if (targetId === 'general') {
+        return !m.recipientId; // Global chat
+      }
+      if (isGroup) {
+        return m.recipientId === targetId;
+      } else {
+        // 1:1 Chat
+        return (m.senderId === currentUser.id && m.recipientId === targetId) ||
+          (m.senderId === targetId && m.recipientId === currentUser.id);
+      }
+    });
 
-      setDeletedMessageIds(newDeletedIds); // Optimistic UI update
+    if (msgsToDelete.length === 0) return;
 
-      const { error } = await supabase.from('deleted_messages').insert(recordsToInsert);
-      if (error) console.error("Failed to delete chat history", error);
+    const newDeletedIds = new Set(deletedMessageIds);
+    const recordsToInsert = msgsToDelete.map(m => {
+      newDeletedIds.add(m.id);
+      return {
+        id: 'dm-' + Date.now() + Math.random().toString(36).substr(2, 9),
+        user_id: currentUser.id,
+        message_id: m.id,
+        timestamp: Date.now()
+      };
+    });
+
+    setDeletedMessageIds(newDeletedIds); // Optimistic UI update
+
+    const { error } = await supabase.from('deleted_messages').insert(recordsToInsert);
+    if (error) console.error("Failed to delete chat history", error);
   };
 
 
@@ -736,7 +736,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const createPeerConnection = (recipientId: string) => {
     const pc = new RTCPeerConnection(RTC_CONFIG);
-    
+
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         sendSignal('CANDIDATE', recipientId, { candidate: event.candidate.toJSON() });
@@ -747,24 +747,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       // The receiver is unable to hear audio because sometimes tracks are added but not correctly mapped to the existing stream reference
       // We force create a NEW MediaStream object to ensure the video element reloads the source
       setRemoteStreams(prev => {
-          const newMap = new Map<string, MediaStream>(prev);
-          const existingStream = newMap.get(recipientId);
-          const track = event.track;
+        const newMap = new Map<string, MediaStream>(prev);
+        const existingStream = newMap.get(recipientId);
+        const track = event.track;
 
-          if (existingStream) {
-              // Create a brand new stream combining existing tracks and the new one
-              const newStream = new MediaStream(existingStream.getTracks());
-              if (!newStream.getTracks().find(t => t.id === track.id)) {
-                  newStream.addTrack(track);
-              }
-              newMap.set(recipientId, newStream);
-          } else {
-              // Create new stream with this track
-              // If event.streams[0] is available, we could use it, but cloning is safer for React reactivity
-              const newStream = event.streams[0] ? new MediaStream(event.streams[0].getTracks()) : new MediaStream([track]);
-              newMap.set(recipientId, newStream);
+        if (existingStream) {
+          // Create a brand new stream combining existing tracks and the new one
+          const newStream = new MediaStream(existingStream.getTracks());
+          if (!newStream.getTracks().find(t => t.id === track.id)) {
+            newStream.addTrack(track);
           }
-          return newMap;
+          newMap.set(recipientId, newStream);
+        } else {
+          // Create new stream with this track
+          // If event.streams[0] is available, we could use it, but cloning is safer for React reactivity
+          const newStream = event.streams[0] ? new MediaStream(event.streams[0].getTracks()) : new MediaStream([track]);
+          newMap.set(recipientId, newStream);
+        }
+        return newMap;
       });
     };
 
@@ -773,30 +773,30 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const renegotiate = async () => {
-      if (!localStream) return;
-      for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-          try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              sendSignal('OFFER', recipientId, { sdp: { type: offer.type, sdp: offer.sdp } });
-          } catch(e) {
-              console.error("Renegotiation failed", e);
-          }
+    if (!localStream) return;
+    for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        sendSignal('OFFER', recipientId, { sdp: { type: offer.type, sdp: offer.sdp } });
+      } catch (e) {
+        console.error("Renegotiation failed", e);
       }
+    }
   };
 
   const toggleMic = async () => {
     if (!localStream) return;
     const audioTracks = localStream.getAudioTracks();
-    
+
     // Simply toggle 'enabled' status of existing tracks. 
     // Do not attempt to add/remove tracks here to avoid renegotiation conflicts with video/screen share.
     if (audioTracks.length > 0) {
-        const newStatus = !isMicOn;
-        audioTracks.forEach(t => t.enabled = newStatus);
-        setIsMicOn(newStatus);
+      const newStatus = !isMicOn;
+      audioTracks.forEach(t => t.enabled = newStatus);
+      setIsMicOn(newStatus);
     } else {
-        console.warn("No audio tracks found to toggle.");
+      console.warn("No audio tracks found to toggle.");
     }
   };
 
@@ -804,57 +804,57 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (!localStream) return;
 
     if (isCameraOn) {
-        // Turn off camera
-        localStream.getVideoTracks().forEach(t => {
-            if (!t.label.includes('screen') && !t.getSettings().displaySurface) { // Don't kill screen share
-               t.stop();
-               localStream.removeTrack(t);
-            }
-        });
-        setIsCameraOn(false);
-        
-        // Update peers: replace video track with null (stop sending video)
-        for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-            const transceivers = pc.getTransceivers();
-            const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
-            if (videoTransceiver && videoTransceiver.sender) {
-                videoTransceiver.sender.replaceTrack(null);
-            }
+      // Turn off camera
+      localStream.getVideoTracks().forEach(t => {
+        if (!t.label.includes('screen') && !t.getSettings().displaySurface) { // Don't kill screen share
+          t.stop();
+          localStream.removeTrack(t);
         }
-        
-        // Force state update
-        setLocalStream(new MediaStream(localStream.getTracks()));
+      });
+      setIsCameraOn(false);
+
+      // Update peers: replace video track with null (stop sending video)
+      for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
+        const transceivers = pc.getTransceivers();
+        const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
+        if (videoTransceiver && videoTransceiver.sender) {
+          videoTransceiver.sender.replaceTrack(null);
+        }
+      }
+
+      // Force state update
+      setLocalStream(new MediaStream(localStream.getTracks()));
     } else {
-        try {
-            // Turn on camera
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const videoTrack = stream.getVideoTracks()[0];
-            
-            // If we were screen sharing, stop it first (mutually exclusive video track for simplicity)
-            if (isScreenSharing) {
-                await stopScreenSharing(); 
-            }
+      try {
+        // Turn on camera
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        const videoTrack = stream.getVideoTracks()[0];
 
-            localStream.addTrack(videoTrack);
-            setIsCameraOn(true);
-
-            // Update peers
-            for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-                const transceivers = pc.getTransceivers();
-                const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
-                
-                if (videoTransceiver && videoTransceiver.sender) {
-                    await videoTransceiver.sender.replaceTrack(videoTrack);
-                    videoTransceiver.direction = 'sendrecv';
-                } else {
-                    pc.addTrack(videoTrack, localStream);
-                }
-            }
-            setLocalStream(new MediaStream(localStream.getTracks()));
-            await renegotiate();
-        } catch (e) {
-            console.error("Failed to access camera", e);
+        // If we were screen sharing, stop it first (mutually exclusive video track for simplicity)
+        if (isScreenSharing) {
+          await stopScreenSharing();
         }
+
+        localStream.addTrack(videoTrack);
+        setIsCameraOn(true);
+
+        // Update peers
+        for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
+          const transceivers = pc.getTransceivers();
+          const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
+
+          if (videoTransceiver && videoTransceiver.sender) {
+            await videoTransceiver.sender.replaceTrack(videoTrack);
+            videoTransceiver.direction = 'sendrecv';
+          } else {
+            pc.addTrack(videoTrack, localStream);
+          }
+        }
+        setLocalStream(new MediaStream(localStream.getTracks()));
+        await renegotiate();
+      } catch (e) {
+        console.error("Failed to access camera", e);
+      }
     }
   };
 
@@ -864,35 +864,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const startGroupCall = async (recipientIds: string[]) => {
     if (!currentUser || recipientIds.length === 0) return;
-    
+
     let stream = localStream;
     if (!stream) {
-        try {
-           // Start with Audio ON, Video OFF by default
-           stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
-           setIsMicOn(true);
-           setIsCameraOn(false);
-        } catch (e) {
-           console.error("Error getting user media", e);
-           alert("Could not access microphone. Call cannot start.");
-           return; 
-        }
-        setLocalStream(stream);
+      try {
+        // Start with Audio ON (permission wise) but Muted, Video OFF
+        stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        // Important: Start MUTED by default as per requirement
+        stream.getAudioTracks().forEach(t => t.enabled = false);
+        setIsMicOn(false);
+        setIsCameraOn(false);
+      } catch (e) {
+        console.error("Error getting user media", e);
+        alert("Could not access microphone. Call cannot start.");
+        return;
+      }
+      setLocalStream(stream);
     }
-    
+
     setIsInCall(true);
     setActiveCallData({ participantIds: recipientIds });
-    
+
     recipientIds.forEach(async (recipientId) => {
-        try {
-             const pc = createPeerConnection(recipientId);
-             stream!.getTracks().forEach(track => pc.addTrack(track, stream!));
-             const offer = await pc.createOffer();
-             await pc.setLocalDescription(offer);
-             sendSignal('OFFER', recipientId, { sdp: { type: offer.type, sdp: offer.sdp } });
-        } catch(e) {
-            console.error(`Failed to call ${recipientId}`, e);
-        }
+      try {
+        const pc = createPeerConnection(recipientId);
+        stream!.getTracks().forEach(track => pc.addTrack(track, stream!));
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        sendSignal('OFFER', recipientId, { sdp: { type: offer.type, sdp: offer.sdp } });
+      } catch (e) {
+        console.error(`Failed to call ${recipientId}`, e);
+      }
     });
   };
 
@@ -903,43 +905,47 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const initiateCallConnection = async (recipientId: string, isAdding: boolean = false) => {
-      try {
-          let stream = localStream;
-          
-          // Ensure we have a stream
-          if (!stream) {
-             try { 
-                 stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true }); 
-                 setLocalStream(stream);
-                 setIsMicOn(true);
-             }
-             catch (e) { console.error("No audio device found"); return; }
-          }
+    try {
+      let stream = localStream;
 
-          const pc = createPeerConnection(recipientId);
-          stream.getTracks().forEach(track => pc.addTrack(track, stream!));
-          
-          const offer = await pc.createOffer();
-          await pc.setLocalDescription(offer);
-          sendSignal('OFFER', recipientId, { sdp: { type: offer.type, sdp: offer.sdp } });
-      } catch (err) { console.error("Error initiating connection:", err); }
+      // Ensure we have a stream
+      if (!stream) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+          // Start Muted
+          stream.getAudioTracks().forEach(t => t.enabled = false);
+          setLocalStream(stream);
+          setIsMicOn(false);
+        }
+        catch (e) { console.error("No audio device found"); return; }
+      }
+
+      const pc = createPeerConnection(recipientId);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream!));
+
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      sendSignal('OFFER', recipientId, { sdp: { type: offer.type, sdp: offer.sdp } });
+    } catch (err) { console.error("Error initiating connection:", err); }
   }
 
   const acceptIncomingCall = async () => {
     if (!incomingCall || !currentUser) return;
     try {
       let stream: MediaStream;
-      try { 
-          stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true }); 
-          setIsMicOn(true); 
-          setIsCameraOn(false);
-      } 
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: false, audio: true });
+        // Start Muted
+        stream.getAudioTracks().forEach(t => t.enabled = false);
+        setIsMicOn(false);
+        setIsCameraOn(false);
+      }
       catch (e) { console.error("Could not access microphone"); return; }
       setLocalStream(stream);
 
       const pc = createPeerConnection(incomingCall.callerId);
       stream.getTracks().forEach(track => pc.addTrack(track, stream));
-      
+
       if (incomingCall.offer) {
         await pc.setRemoteDescription(new RTCSessionDescription(incomingCall.offer));
         const answer = await pc.createAnswer();
@@ -962,7 +968,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const endCall = () => {
     if (activeCallData && currentUser) {
-       activeCallData.participantIds.forEach(pid => { sendSignal('HANGUP', pid, {}); });
+      activeCallData.participantIds.forEach(pid => { sendSignal('HANGUP', pid, {}); });
     }
     cleanupCall();
   };
@@ -972,17 +978,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (pc) { pc.close(); peerConnectionsRef.current.delete(senderId); }
     setRemoteStreams(prev => { const newMap = new Map(prev); newMap.delete(senderId); return newMap; });
     setActiveCallData(prev => {
-        if (!prev) return null;
-        const newIds = prev.participantIds.filter(id => id !== senderId);
-        if (newIds.length === 0) { cleanupCall(); return null; }
-        return { ...prev, participantIds: newIds };
+      if (!prev) return null;
+      const newIds = prev.participantIds.filter(id => id !== senderId);
+      if (newIds.length === 0) { cleanupCall(); return null; }
+      return { ...prev, participantIds: newIds };
     });
   };
 
   const cleanupCall = () => {
     // Use ref to ensure we stop the actual tracks running even if called from a stale closure
-    if (localStreamRef.current) { 
-        localStreamRef.current.getTracks().forEach(track => track.stop()); 
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
     }
     peerConnectionsRef.current.forEach(pc => pc.close());
     peerConnectionsRef.current.clear();
@@ -996,76 +1002,76 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const stopScreenSharing = async () => {
-     if (peerConnectionsRef.current.size === 0 || !localStream) return;
-     try {
-         // Stop screen tracks
-         localStream.getVideoTracks().forEach(track => { 
-             if (track.label.includes('screen') || track.getSettings().displaySurface) {
-                track.stop(); 
-                localStream.removeTrack(track); 
-             }
-         });
-         
-         setIsScreenSharing(false);
-         setIsCameraOn(false);
+    if (peerConnectionsRef.current.size === 0 || !localStream) return;
+    try {
+      // Stop screen tracks
+      localStream.getVideoTracks().forEach(track => {
+        if (track.label.includes('screen') || track.getSettings().displaySurface) {
+          track.stop();
+          localStream.removeTrack(track);
+        }
+      });
 
-         // Notify peers by replacing video track with null
-         for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-             const transceivers = pc.getTransceivers();
-             const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
-             if (videoTransceiver && videoTransceiver.sender) {
-                 videoTransceiver.sender.replaceTrack(null);
-             }
-         }
-         
-         setLocalStream(new MediaStream(localStream.getTracks()));
-     } catch (e) {
-         console.error("Error stopping screen share:", e);
-     }
+      setIsScreenSharing(false);
+      setIsCameraOn(false);
+
+      // Notify peers by replacing video track with null
+      for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
+        const transceivers = pc.getTransceivers();
+        const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
+        if (videoTransceiver && videoTransceiver.sender) {
+          videoTransceiver.sender.replaceTrack(null);
+        }
+      }
+
+      setLocalStream(new MediaStream(localStream.getTracks()));
+    } catch (e) {
+      console.error("Error stopping screen share:", e);
+    }
   };
 
   const toggleScreenShare = async () => {
     if (peerConnectionsRef.current.size === 0 || !localStream) return;
-    
+
     if (isScreenSharing) {
-       await stopScreenSharing();
+      await stopScreenSharing();
     } else {
       try {
         const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
         const screenTrack = displayStream.getVideoTracks()[0];
-        
+
         // If camera is on, stop it first (mutually exclusive video track for simplicity)
         if (isCameraOn) {
-            localStream.getVideoTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
-            setIsCameraOn(false);
+          localStream.getVideoTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
+          setIsCameraOn(false);
         }
 
         // Add to local stream for local preview
         localStream.addTrack(screenTrack);
-        
+
         // Handle stream ending (user clicks "Stop Sharing" in browser UI)
-        screenTrack.onended = () => { 
-            stopScreenSharing(); 
+        screenTrack.onended = () => {
+          stopScreenSharing();
         };
 
         // Update all peers
         for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-             const transceivers = pc.getTransceivers();
-             const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
-             
-             if (videoTransceiver && videoTransceiver.sender) {
-                 await videoTransceiver.sender.replaceTrack(screenTrack);
-                 videoTransceiver.direction = 'sendrecv';
-             } else {
-                 pc.addTrack(screenTrack, localStream);
-             }
+          const transceivers = pc.getTransceivers();
+          const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
+
+          if (videoTransceiver && videoTransceiver.sender) {
+            await videoTransceiver.sender.replaceTrack(screenTrack);
+            videoTransceiver.direction = 'sendrecv';
+          } else {
+            pc.addTrack(screenTrack, localStream);
+          }
         }
 
         setIsScreenSharing(true);
         setLocalStream(new MediaStream(localStream.getTracks()));
-        
+
         await renegotiate();
-        
+
       } catch (err: any) { console.error("Error starting screen share:", err); }
     }
   };
