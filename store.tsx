@@ -591,6 +591,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setTasks(newTasks);
 
     // 7. Persist to DB
+    // 7. Persist to DB
     await Promise.all(updates.map(u =>
       supabase.from('tasks').update({ status: u.status, order: u.order }).eq('id', u.id)
     ));
