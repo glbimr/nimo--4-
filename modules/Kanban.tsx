@@ -114,18 +114,18 @@ const TaskCardItem: React.FC<{
     <div
       draggable={canEdit}
       onDragStart={(e) => onDragStart(e, task.id)}
-      className={`bg-white p-5 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 transition-all group relative 
+      className={`bg-white p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 transition-all group relative 
         ${canEdit ? 'cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-indigo-100 hover:-translate-y-0.5' : 'cursor-default opacity-90'}
         ${isAssigning ? 'z-20 ring-2 ring-indigo-100 shadow-xl' : 'z-0'}
       `}
     >
       {/* 1. Header: Badges Left, Actions Right */}
-      <div className="flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-2">
         <div className="flex items-center gap-2">
-          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${categoryConfig.color}`}>
+          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase tracking-wider border ${categoryConfig.color}`}>
             {categoryConfig.label}
           </span>
-          <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border capitalize ${priorityStyle}`}>
+          <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold border capitalize ${priorityStyle}`}>
             {task.priority}
           </span>
         </div>
@@ -151,9 +151,9 @@ const TaskCardItem: React.FC<{
       </div>
 
       {/* 2. Main Content: Title/Date Left, Assignee Right (Bigger) */}
-      <div className="flex justify-between items-start mb-2 gap-4">
+      <div className="flex justify-between items-start mb-1 gap-4">
         <div className="flex flex-col flex-1 min-w-0 mr-2">
-          <h4 className="font-semibold text-slate-800 text-lg leading-snug break-words">
+          <h4 className="font-semibold text-slate-800 text-sm leading-snug break-words">
             {task.title}
           </h4>
 
@@ -176,12 +176,12 @@ const TaskCardItem: React.FC<{
           >
             {assignee ? (
               <div className="relative">
-                <img src={assignee.avatar} alt={assignee.name} className="w-11 h-11 rounded-full object-cover border-2 border-white shadow-sm" />
+                <img src={assignee.avatar} alt={assignee.name} className="w-8 h-8 rounded-full object-cover border-2 border-white shadow-sm" />
                 {canEdit && <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 border border-slate-200"><Settings size={10} className="text-slate-500" /></div>}
               </div>
             ) : (
-              <div className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border-2 border-slate-50 border-dashed hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-500 transition-colors">
-                <UserIcon size={18} />
+              <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 border-2 border-slate-50 border-dashed hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-500 transition-colors">
+                <UserIcon size={14} />
               </div>
             )}
           </button>
@@ -219,7 +219,7 @@ const TaskCardItem: React.FC<{
       </div>
 
       {/* 3. Footer: Subtasks & Attachments */}
-      <div className="flex items-center space-x-4 pt-3 mt-2 border-t border-slate-50">
+      <div className="flex items-center space-x-4 pt-2 mt-2 border-t border-slate-50">
         <div className={`flex items-center text-xs font-medium ${task.subtasks.length > 0 ? 'text-slate-600' : 'text-slate-300'}`}>
           <CheckSquare size={16} className={`mr-2 ${completedSubtasks === task.subtasks.length && task.subtasks.length > 0 ? 'text-green-500' : ''}`} />
           {task.subtasks.length > 0 ? `Subtasks ${completedSubtasks}/${task.subtasks.length}` : 'No Subtasks'}
@@ -257,8 +257,8 @@ const TaskCardItem: React.FC<{
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${sub.priority === 'high' ? 'bg-red-50 text-red-600 border-red-100' :
-                          sub.priority === 'medium' ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                            'bg-slate-100 text-slate-500 border-slate-200'
+                        sub.priority === 'medium' ? 'bg-orange-50 text-orange-600 border-orange-100' :
+                          'bg-slate-100 text-slate-500 border-slate-200'
                         }`}>
                         {sub.priority}
                       </span>
@@ -359,7 +359,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
       <div className="flex justify-between items-center mb-4 sticky top-0 bg-slate-50/50 backdrop-blur-sm p-1 z-10">
         <h3 className="font-bold text-slate-700 flex items-center text-sm uppercase tracking-wide">
           <span className={`w-2.5 h-2.5 rounded-full mr-2.5 shadow-sm ${status === TaskStatus.TODO ? 'bg-slate-400' :
-              status === TaskStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-emerald-500'
+            status === TaskStatus.IN_PROGRESS ? 'bg-blue-500' : 'bg-emerald-500'
             }`}></span>
           {title}
         </h3>
@@ -441,12 +441,12 @@ const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleCo
                   {visibleColumns.includes('status') && (
                     <td className="px-6 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${task.status === TaskStatus.TODO ? 'bg-slate-100 text-slate-600 border-slate-200' :
-                          task.status === TaskStatus.IN_PROGRESS ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                            'bg-green-50 text-green-700 border-green-100'
+                        task.status === TaskStatus.IN_PROGRESS ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                          'bg-green-50 text-green-700 border-green-100'
                         }`}>
                         <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${task.status === TaskStatus.TODO ? 'bg-slate-400' :
-                            task.status === TaskStatus.IN_PROGRESS ? 'bg-blue-500' :
-                              'bg-green-500'
+                          task.status === TaskStatus.IN_PROGRESS ? 'bg-blue-500' :
+                            'bg-green-500'
                           }`}></span>
                         {task.status === TaskStatus.TODO ? 'To Do' : task.status === TaskStatus.IN_PROGRESS ? 'In Progress' : 'Done'}
                       </span>
@@ -455,8 +455,8 @@ const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleCo
                   {visibleColumns.includes('priority') && (
                     <td className="px-6 py-3">
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs capitalize ${task.priority === 'high' ? 'text-red-700 bg-red-50' :
-                          task.priority === 'medium' ? 'text-orange-700 bg-orange-50' :
-                            'text-slate-600 bg-slate-100'
+                        task.priority === 'medium' ? 'text-orange-700 bg-orange-50' :
+                          'text-slate-600 bg-slate-100'
                         }`}>
                         {task.priority}
                       </span>
@@ -811,8 +811,8 @@ const TaskEditor: React.FC<{
                       setFormData({ ...formData, status: isDone ? TaskStatus.TODO : TaskStatus.DONE });
                     }}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.status === TaskStatus.DONE
-                        ? 'bg-green-50 border-green-200 text-green-700'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300'
+                      ? 'bg-green-50 border-green-200 text-green-700'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300'
                       }`}
                   >
                     <span>{formData.status === TaskStatus.DONE ? 'Completed' : 'Incomplete'}</span>
@@ -1286,8 +1286,8 @@ const SubtaskEditor: React.FC<{
                     disabled={readOnly}
                     onClick={() => setFormData({ ...formData, completed: !formData.completed, status: !formData.completed ? TaskStatus.DONE : TaskStatus.TODO })}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg border text-sm font-medium transition-all ${formData.completed
-                        ? 'bg-green-50 border-green-200 text-green-700'
-                        : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300'
+                      ? 'bg-green-50 border-green-200 text-green-700'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-indigo-300'
                       }`}
                   >
                     <span>{formData.completed ? 'Completed' : 'Incomplete'}</span>

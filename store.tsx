@@ -1031,6 +1031,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       setLocalStream(new MediaStream(localStream.getTracks()));
+
+      // Force renegotiation to ensure peers handle the track removal correctly
+      await renegotiate();
     } catch (e) {
       console.error("Error stopping screen share:", e);
     }

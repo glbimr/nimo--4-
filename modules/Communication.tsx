@@ -5,7 +5,7 @@ import {
   Monitor, PhoneOff, Search, Users, ChevronLeft,
   Paperclip, FileText, Image as ImageIcon, X, Plus, Check, BellRing,
   Maximize2, Minimize2, PictureInPicture, UserPlus, Layout, MoreVertical, Trash2,
-  PhoneMissed, Pin, PinOff
+  PhoneMissed, Pin, PinOff, Maximize
 } from 'lucide-react';
 import { User, Attachment, Group, NotificationType } from '../types';
 import { Modal } from '../components/Modal';
@@ -454,7 +454,7 @@ export const Communication: React.FC = () => {
                         className="p-2 bg-black/40 hover:bg-black/60 text-white rounded-full backdrop-blur-sm transition-colors md:hidden"
                         title="Full Screen"
                       >
-                        <Maximize2 size={20} />
+                        <Maximize size={20} />
                       </button>
                     </div>
                   </div>
@@ -581,70 +581,88 @@ export const Communication: React.FC = () => {
   };
 
   // --- Invite Modal ---
-  const InviteModal = () => (
-    <Modal
-      isOpen={isInviteModalOpen}
-      onClose={() => setIsInviteModalOpen(false)}
-      title="Add Member to Call"
-      maxWidth="max-w-xl"
-      className="h-[550px]"
-      noScroll={true}
-    >
-      <div className="flex flex-col h-full p-6 space-y-5">
-        <div className="relative shrink-0">
-          <Search size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search for people to invite..."
-            className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-base shadow-sm"
-            autoFocus
-          />
-        </div>
+  const InviteModal = () => {
+    const [inviteSearch, setInviteSearch] = useState('');
 
-        <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2">
-          {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).map(user => (
-            <div key={user.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 hover:border-indigo-100 transition-all group">
-              <div className="flex items-center min-w-0">
-                <div className="relative mr-4 shrink-0">
-                  <img src={user.avatar} className="w-12 h-12 rounded-full border border-slate-200" alt={user.name} />
-                  <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${user.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+    // Reset search when modal opens/closes
+    useEffect(() => {
+      if (!isInviteModalOpen) setInviteSearch('');
+    }, [isInviteModalOpen]);
+
+    const availableUsers = users.filter(u =>
+      u.id !== currentUser?.id &&
+      !activeCallData?.participantIds.includes(u.id) &&
+      (u.name.toLowerCase().includes(inviteSearch.toLowerCase()) ||
+        u.username.toLowerCase().includes(inviteSearch.toLowerCase()))
+    );
+
+    return (
+      <Modal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        title="Add Member to Call"
+        maxWidth="max-w-xl"
+        className="h-[550px]"
+        noScroll={true}
+      >
+        <div className="flex flex-col h-full p-6 space-y-5">
+          <div className="relative shrink-0">
+            <Search size={18} className="absolute left-3.5 top-3.5 text-slate-400" />
+            <input
+              type="text"
+              placeholder="Search for people to invite..."
+              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-base shadow-sm"
+              autoFocus
+              value={inviteSearch}
+              onChange={(e) => setInviteSearch(e.target.value)}
+            />
+          </div>
+
+          <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 space-y-2">
+            {availableUsers.map(user => (
+              <div key={user.id} className="flex items-center justify-between p-3 rounded-xl hover:bg-slate-50 border border-slate-100 hover:border-indigo-100 transition-all group">
+                <div className="flex items-center min-w-0">
+                  <div className="relative mr-4 shrink-0">
+                    <img src={user.avatar} className="w-12 h-12 rounded-full border border-slate-200" alt={user.name} />
+                    <div className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${user.isOnline ? 'bg-green-500' : 'bg-slate-300'}`}></div>
+                  </div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-slate-800 text-sm truncate">{user.name}</span>
+                    <span className="text-xs text-slate-500 truncate">@{user.username || 'user'}</span>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="font-bold text-slate-800 text-sm truncate">{user.name}</span>
-                  <span className="text-xs text-slate-500 truncate">@{user.username || 'user'}</span>
-                </div>
+                <button
+                  onClick={() => handleInviteUser(user.id)}
+                  className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors flex items-center shadow-sm shrink-0"
+                  title="Call User"
+                >
+                  <Phone size={18} className="mr-2" />
+                  <span className="text-xs font-bold uppercase">Call</span>
+                </button>
               </div>
-              <button
-                onClick={() => handleInviteUser(user.id)}
-                className="p-2.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-600 hover:text-white transition-colors flex items-center shadow-sm shrink-0"
-                title="Call User"
-              >
-                <Phone size={18} className="mr-2" />
-                <span className="text-xs font-bold uppercase">Call</span>
-              </button>
-            </div>
-          ))}
+            ))}
 
-          {users.filter(u => u.id !== currentUser?.id && !activeCallData?.participantIds.includes(u.id)).length === 0 && (
-            <div className="flex flex-col items-center justify-center h-48 text-slate-400">
-              <Users size={40} className="mb-3 opacity-20" />
-              <p className="font-medium text-sm">No other users available to add.</p>
-              <p className="text-xs opacity-70 mt-1">Everyone is already here!</p>
-            </div>
-          )}
-        </div>
+            {availableUsers.length === 0 && (
+              <div className="flex flex-col items-center justify-center h-48 text-slate-400">
+                <Users size={40} className="mb-3 opacity-20" />
+                <p className="font-medium text-sm">No other users available to add.</p>
+                <p className="text-xs opacity-70 mt-1">Everyone is already here!</p>
+              </div>
+            )}
+          </div>
 
-        <div className="shrink-0 pt-3 border-t border-slate-100 flex justify-end">
-          <button
-            onClick={() => setIsInviteModalOpen(false)}
-            className="px-6 py-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition-colors font-medium"
-          >
-            Close
-          </button>
+          <div className="shrink-0 pt-3 border-t border-slate-100 flex justify-end">
+            <button
+              onClick={() => setIsInviteModalOpen(false)}
+              className="px-6 py-2.5 text-slate-500 hover:bg-slate-100 hover:text-slate-700 rounded-xl transition-colors font-medium"
+            >
+              Close
+            </button>
+          </div>
         </div>
-      </div>
-    </Modal>
-  );
+      </Modal>
+    );
+  };
 
   return (
     <div className="flex flex-1 bg-white md:rounded-xl md:shadow-sm md:border md:border-slate-200 overflow-hidden md:m-6 m-0 relative">
