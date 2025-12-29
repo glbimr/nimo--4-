@@ -40,7 +40,7 @@ interface AppContextType {
   addTask: (t: Task) => void;
   updateTask: (t: Task) => void;
   deleteTask: (id: string) => Promise<void>;
-  moveTask: (taskId: string, newStatus: TaskStatus) => void;
+  moveTask: (taskId: string, newStatus: TaskStatus, newIndex?: number) => Promise<void>;
   addMessage: (text: string, recipientId?: string, attachments?: Attachment[]) => void;
   createGroup: (name: string, memberIds: string[]) => Promise<string | null>;
   addProject: (name: string, description: string) => void;
@@ -139,6 +139,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     projectId: t.project_id,
     assigneeId: t.assignee_id,
     dueDate: t.due_date,
+    order: t.order,
     createdAt: t.created_at
   });
   const mapProjectFromDB = (p: any): Project => ({
@@ -505,6 +506,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addTask = async (t: Task) => {
+    const projectTasks = tasks.filter(task => task.status === t.status && task.projectId === t.projectId);
+    const maxOrder = projectTasks.reduce((max, curr) => Math.max(max, curr.order || 0), -1);
+
     await supabase.from('tasks').insert({
       id: t.id,
       project_id: t.projectId,
@@ -518,7 +522,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       attachments: t.attachments,
       comments: t.comments,
       subtasks: t.subtasks,
-      created_at: t.createdAt
+      created_at: t.createdAt,
+      order: maxOrder + 1
     });
   };
 
@@ -533,7 +538,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       due_date: t.dueDate,
       attachments: t.attachments,
       comments: t.comments,
-      subtasks: t.subtasks
+      subtasks: t.subtasks,
+      order: t.order
     }).eq('id', t.id);
   };
 
@@ -541,8 +547,50 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabase.from('tasks').delete().eq('id', id);
   };
 
-  const moveTask = async (id: string, s: TaskStatus) => {
-    await supabase.from('tasks').update({ status: s }).eq('id', id);
+  const moveTask = async (id: string, s: TaskStatus, newIndex?: number) => {
+    // 1. Get current state and task
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+
+    // 2. Identify destination tasks (excluding the moved task if it was already in this column)
+    // We want the list of tasks in the target status, EXCLUDING the dragged task.
+    let destTasks = tasks.filter(t => t.status === s && t.id !== id);
+
+    // 3. Sort by current order to ensure correct insertion point
+    destTasks.sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    // 4. Insert task at new index
+    const updatedTask = { ...task, status: s };
+    if (newIndex !== undefined && newIndex >= 0 && newIndex <= destTasks.length) {
+      destTasks.splice(newIndex, 0, updatedTask);
+    } else {
+      destTasks.push(updatedTask);
+    }
+
+    // 5. Re-assign orders
+    const updates = destTasks.map((t, idx) => ({ ...t, order: idx }));
+
+    // 6. Optimistic Update
+    // We need to construct the new full task list. 
+    // We take all tasks NOT in the destination status (and not the moved task), and combine with updated destination tasks.
+    // Wait, if we moved FROM s TO s (reorder), the above logic works (filtered out, inserted back).
+    // If we moved FROM A TO B, 'destTasks' holds B tasks + moved task.
+    // We also need to keep A tasks (excluding moved task) unchanged order-wise (gaps are fine).
+
+    // Map of ID -> New Task Data
+    const updateMap = new Map(updates.map(u => [u.id, u]));
+
+    const newTasks = tasks.map(t => {
+      if (updateMap.has(t.id)) return updateMap.get(t.id)!;
+      if (t.id === id) return { ...t, status: s }; // Fallback, should be covered by updateMap
+      return t;
+    });
+    setTasks(newTasks);
+
+    // 7. Persist to DB
+    await Promise.all(updates.map(u =>
+      supabase.from('tasks').update({ status: u.status, order: u.order }).eq('id', u.id)
+    ));
   };
 
   const addMessage = async (text: string, recipientId?: string, attachments: Attachment[] = []) => {

@@ -60,7 +60,8 @@ const TaskCardItem: React.FC<{
   onEditSubtask: (task: Task, subtask: SubTask) => void;
   onUpdateTask: (task: Task) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
-}> = ({ task, users, canEdit, onEditTask, onEditSubtask, onUpdateTask, onDragStart }) => {
+  onDropOnTask: (e: React.DragEvent, targetTaskId: string, position: 'before' | 'after') => void;
+}> = ({ task, users, canEdit, onEditTask, onEditSubtask, onUpdateTask, onDragStart, onDropOnTask }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [assigningSubtaskId, setAssigningSubtaskId] = useState<string | null>(null);
@@ -114,6 +115,17 @@ const TaskCardItem: React.FC<{
     <div
       draggable={canEdit}
       onDragStart={(e) => onDragStart(e, task.id)}
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        const midY = rect.top + rect.height / 2;
+        onDropOnTask(e, task.id, e.clientY < midY ? 'before' : 'after');
+      }}
       className={`bg-white p-3 rounded-2xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-slate-100 transition-all group relative 
         ${canEdit ? 'cursor-grab active:cursor-grabbing hover:shadow-lg hover:border-indigo-100 hover:-translate-y-0.5' : 'cursor-default opacity-90'}
         ${isAssigning ? 'z-20 ring-2 ring-indigo-100 shadow-xl' : 'z-0'}
@@ -339,7 +351,7 @@ interface ColumnProps {
   canEdit: boolean;
   users: User[];
   onDragOver: (e: React.DragEvent) => void;
-  onDrop: (e: React.DragEvent, status: TaskStatus) => void;
+  onDrop: (e: React.DragEvent, status: TaskStatus, index?: number) => void;
   onDragStart: (e: React.DragEvent, taskId: string) => void;
   onEditTask: (task: Task) => void;
   onEditSubtask: (task: Task, subtask: SubTask) => void;
@@ -350,6 +362,14 @@ const KanbanColumn: React.FC<ColumnProps> = ({
   status, title, tasks, canEdit, users,
   onDragOver, onDrop, onDragStart, onEditTask, onEditSubtask, onUpdateTask
 }) => {
+  const sortedTasks = [...tasks].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+  const handleTaskDrop = (e: React.DragEvent, targetTaskId: string, position: 'before' | 'after') => {
+    const targetIndex = sortedTasks.findIndex(t => t.id === targetTaskId);
+    if (targetIndex === -1) return;
+    const newIndex = position === 'before' ? targetIndex : targetIndex + 1;
+    onDrop(e, status, newIndex);
+  };
   return (
     <div
       onDragOver={onDragOver}
@@ -368,7 +388,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
         </span>
       </div>
       <div className="space-y-4 flex-1 overflow-y-auto pr-1 pb-2 custom-scrollbar">
-        {tasks.map(task => (
+        {sortedTasks.map(task => (
           <TaskCardItem
             key={task.id}
             task={task}
@@ -378,6 +398,7 @@ const KanbanColumn: React.FC<ColumnProps> = ({
             onEditSubtask={onEditSubtask}
             onUpdateTask={onUpdateTask}
             onDragStart={onDragStart}
+            onDropOnTask={handleTaskDrop}
           />
         ))}
         {tasks.length === 0 && canEdit && (
@@ -1449,10 +1470,10 @@ export const KanbanBoard: React.FC = () => {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, status: TaskStatus) => {
+  const handleDrop = (e: React.DragEvent, status: TaskStatus, newIndex?: number) => {
     e.preventDefault();
     if (draggedTaskId) {
-      moveTask(draggedTaskId, status);
+      moveTask(draggedTaskId, status, newIndex);
       setDraggedTaskId(null);
     }
   };
