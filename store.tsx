@@ -1043,7 +1043,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await stopScreenSharing();
     } else {
       try {
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({ video: true });
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: { ideal: 30, max: 60 }
+          }
+        });
         const screenTrack = displayStream.getVideoTracks()[0];
 
         // If camera is on, stop it first (mutually exclusive video track for simplicity)
