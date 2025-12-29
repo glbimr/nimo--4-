@@ -525,7 +525,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       attachments: t.attachments,
       comments: t.comments,
       subtasks: t.subtasks,
-      created_at: t.createdAt
+      created_at: t.createdAt,
+      order: maxOrder + 1
     });
   };
 
@@ -543,7 +544,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       due_date: t.dueDate || null,
       attachments: t.attachments,
       comments: t.comments,
-      subtasks: t.subtasks
+      subtasks: t.subtasks,
+      order: t.order
     }).eq('id', t.id);
   };
 
@@ -593,7 +595,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // 7. Persist to DB
     await Promise.all(updates.map(u =>
-      supabase.from('tasks').update({ status: u.status }).eq('id', u.id)
+      supabase.from('tasks').update({ status: u.status, order: u.order }).eq('id', u.id)
     ));
 
     // 8. Notification
