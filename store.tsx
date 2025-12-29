@@ -550,14 +550,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabase.from('tasks').delete().eq('id', id);
   };
 
-  const moveTask = async (id: string, s: TaskStatus, newIndex?: number) => {
+  const moveTask = async (taskId: string, s: TaskStatus, newIndex?: number) => {
     // 1. Get current state and task
-    const task = tasks.find(t => t.id === id);
+    const task = tasks.find(t => t.id === taskId);
     if (!task) return;
 
     // 2. Identify destination tasks (excluding the moved task if it was already in this column)
     // We want the list of tasks in the target status, EXCLUDING the dragged task.
-    let destTasks = tasks.filter(t => t.status === s && t.id !== id);
+    let destTasks = tasks.filter(t => t.status === s && t.id !== taskId);
 
     // 3. Sort by current order to ensure correct insertion point
     destTasks.sort((a, b) => (a.order || 0) - (b.order || 0));
@@ -585,12 +585,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     const newTasks = tasks.map(t => {
       if (updateMap.has(t.id)) return updateMap.get(t.id)!;
-      if (t.id === id) return { ...t, status: s }; // Fallback, should be covered by updateMap
+      if (t.id === taskId) return { ...t, status: s }; // Fallback, should be covered by updateMap
       return t;
     });
     setTasks(newTasks);
 
-    // 7. Persist to DB
     // 7. Persist to DB
     await Promise.all(updates.map(u =>
       supabase.from('tasks').update({ status: u.status, order: u.order }).eq('id', u.id)
