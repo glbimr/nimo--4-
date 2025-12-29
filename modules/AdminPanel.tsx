@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../store';
 import { UserRole, User, ProjectAccessLevel, Project } from '../types';
-import { Trash2, UserPlus, Shield, User as UserIcon, Settings, Lock, Search, KeyRound, LayoutGrid, Eye, EyeOff, FolderPlus, Folder, PenLine, Users as UsersIcon } from 'lucide-react';
+import { Trash2, UserPlus, Shield, User as UserIcon, Settings, Lock, Search, KeyRound, LayoutGrid, Eye, EyeOff, FolderPlus, Folder, PenLine, Users as UsersIcon, AlertTriangle } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
 export const AdminPanel: React.FC = () => {
@@ -19,6 +19,7 @@ export const AdminPanel: React.FC = () => {
   const [userSearchTerm, setUserSearchTerm] = useState('');
   const [userModalTab, setUserModalTab] = useState<'account' | 'permissions'>('account');
   const [showPassword, setShowPassword] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<User | null>(null);
 
   const [userFormData, setUserFormData] = useState({
     name: '',
@@ -248,7 +249,7 @@ export const AdminPanel: React.FC = () => {
                           </button>
                           {user.id !== currentUser.id && (
                             <button
-                              onClick={() => deleteUser(user.id)}
+                              onClick={() => setUserToDelete(user)}
                               className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
                               title="Delete User"
                             >
@@ -568,6 +569,41 @@ export const AdminPanel: React.FC = () => {
             </button>
           </div>
         </form>
+      </Modal>
+      <Modal
+        isOpen={!!userToDelete}
+        onClose={() => setUserToDelete(null)}
+        title="Confirm User Deletion"
+        maxWidth="max-w-md"
+        className="h-auto"
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4 mx-auto">
+            <AlertTriangle size={24} />
+          </div>
+          <p className="text-center text-slate-600 mb-6">
+            Are you sure you want to delete <span className="font-bold text-slate-800">{userToDelete?.name}</span>? This action cannot be undone.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setUserToDelete(null)}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (userToDelete) {
+                  deleteUser(userToDelete.id);
+                  setUserToDelete(null);
+                }
+              }}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium shadow-md shadow-red-200 transition-colors"
+            >
+              Delete User
+            </button>
+          </div>
+        </div>
       </Modal>
     </div>
   );
