@@ -190,8 +190,8 @@ const MainLayout: React.FC = () => {
     <button
       onClick={() => setActiveTab(id)}
       className={`w-full relative group flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'justify-between px-4'} py-3 rounded-lg transition-all ${activeTab === id
-          ? 'bg-indigo-600 text-white shadow-md'
-          : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+        ? 'bg-indigo-600 text-white shadow-md'
+        : 'text-slate-400 hover:bg-slate-800 hover:text-white'
         }`}
       title={isSidebarCollapsed ? label : undefined}
     >
@@ -215,8 +215,8 @@ const MainLayout: React.FC = () => {
     <button
       onClick={() => setActiveTab(id)}
       className={`flex flex-col items-center justify-center w-full p-2 ${activeTab === id
-          ? 'text-indigo-600'
-          : 'text-slate-400 hover:text-slate-600'
+        ? 'text-indigo-600'
+        : 'text-slate-400 hover:text-slate-600'
         }`}
     >
       <div className="relative">
@@ -444,8 +444,8 @@ const MainLayout: React.FC = () => {
                     key={index}
                     onClick={() => setPreviewAvatar(avatar)}
                     className={`relative rounded-xl p-1 transition-all group aspect-square flex items-center justify-center ${previewAvatar === avatar
-                        ? 'bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2'
-                        : 'bg-slate-50 hover:bg-slate-100 hover:ring-2 hover:ring-slate-200 hover:ring-offset-1'
+                      ? 'bg-indigo-50 ring-2 ring-indigo-500 ring-offset-2'
+                      : 'bg-slate-50 hover:bg-slate-100 hover:ring-2 hover:ring-slate-200 hover:ring-offset-1'
                       }`}
                   >
                     <img src={avatar} alt={`Avatar ${index}`} className="w-full h-full rounded-lg object-contain" />
@@ -500,9 +500,10 @@ const MainLayout: React.FC = () => {
             {unreadNotificationCount > 0 && (
               <button
                 onClick={clearNotifications}
-                className="text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition-colors"
+                className="flex items-center space-x-1.5 text-xs font-semibold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-full transition-colors"
               >
-                Mark all as read
+                <Check size={14} />
+                <span>Read All</span>
               </button>
             )}
           </div>
@@ -522,17 +523,17 @@ const MainLayout: React.FC = () => {
                 <div
                   key={n.id}
                   className={`relative group p-4 rounded-xl border transition-all duration-200 cursor-pointer ${n.read
-                      ? 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-sm'
-                      : 'bg-white border-indigo-100 shadow-sm ring-1 ring-indigo-50/50'
+                    ? 'bg-white border-slate-200 hover:border-indigo-200 hover:shadow-sm'
+                    : 'bg-white border-indigo-100 shadow-sm ring-1 ring-indigo-50/50'
                     }`}
                   onClick={() => !n.read && markNotificationRead(n.id)}
                 >
                   <div className="flex items-start space-x-4">
                     {/* Icon Side */}
                     <div className={`mt-1 p-2.5 rounded-xl shrink-0 ${n.type === NotificationType.MENTION ? 'bg-blue-100 text-blue-600' :
-                        n.type === NotificationType.ASSIGNMENT ? 'bg-green-100 text-green-600' :
-                          n.type === NotificationType.MISSED_CALL ? 'bg-rose-100 text-rose-600' :
-                            'bg-slate-100 text-slate-600'
+                      n.type === NotificationType.ASSIGNMENT ? 'bg-green-100 text-green-600' :
+                        n.type === NotificationType.MISSED_CALL ? 'bg-rose-100 text-rose-600' :
+                          'bg-slate-100 text-slate-600'
                       }`}>
                       {n.type === NotificationType.MENTION && <AtSign size={18} />}
                       {n.type === NotificationType.ASSIGNMENT && <CheckCircle2 size={18} />}
