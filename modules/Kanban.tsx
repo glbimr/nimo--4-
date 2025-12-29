@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../store';
+import { supabase } from '../supabaseClient';
 import { Task, TaskStatus, SubTask, Attachment, Comment, User, UserRole, NotificationType, TaskCategory, Project } from '../types';
 import {
   Pencil, Plus, CheckSquare, Square, LockKeyhole,
@@ -561,6 +562,7 @@ const TaskEditor: React.FC<{
   const [newComment, setNewComment] = useState('');
   const [showSubtasks, setShowSubtasks] = useState(false);
   const [showAttachments, setShowAttachments] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
   // Local edit subtask state
   const [localEditingSubtask, setLocalEditingSubtask] = useState<SubTask | null>(null);
@@ -633,15 +635,35 @@ const TaskEditor: React.FC<{
     setFormData(prev => ({ ...prev, comments: prev.comments.filter(c => c.id !== commentId) }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newAttachments: Attachment[] = Array.from(e.target.files).map((file: File) => ({
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        type: file.type,
-        url: URL.createObjectURL(file)
-      }));
+      const files = Array.from(e.target.files);
+      const newAttachments: Attachment[] = [];
+
+      for (const file of files) {
+        try {
+          const fileName = `${Date.now()}_task_${Math.random().toString(36).substr(2, 5)}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          const { error } = await supabase.storage.from('attachments').upload(fileName, file);
+
+          if (error) {
+            console.error('Task attachment upload error:', error);
+            continue;
+          }
+
+          const { data } = supabase.storage.from('attachments').getPublicUrl(fileName);
+
+          newAttachments.push({
+            id: Date.now().toString() + Math.random(),
+            name: file.name,
+            size: (file.size / 1024).toFixed(1) + ' KB',
+            type: file.type,
+            url: data.publicUrl
+          });
+        } catch (err) {
+          console.error('Error processing task attachment:', err);
+        }
+      }
+
       setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...newAttachments] }));
       e.target.value = ''; // Reset
     }
@@ -1022,12 +1044,12 @@ const TaskEditor: React.FC<{
                         <div className="w-6 h-6 bg-slate-50 rounded border border-slate-100 flex items-center justify-center text-indigo-500 mr-2">
                           <FileText size={12} />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <button type="button" onClick={() => att.url && setPreviewAttachment(att)} className="flex-1 min-w-0 text-left hover:text-indigo-600">
                           <p className="text-xs font-medium text-slate-700 truncate">{att.name}</p>
                           <p className="text-[10px] text-slate-400">{att.size}</p>
-                        </div>
+                        </button>
                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity px-1">
-                          <a href={att.url} download className="text-slate-400 hover:text-indigo-600"><Download size={12} /></a>
+                          <a href={att.url} download target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-indigo-600"><Download size={12} /></a>
                           {!readOnly && <button type="button" onClick={() => removeAttachment(att.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={12} /></button>}
                         </div>
                       </div>
@@ -1072,7 +1094,35 @@ const TaskEditor: React.FC<{
           }}
         />
       )}
-    </Modal>
+
+      {
+        previewAttachment && (
+          <Modal
+            isOpen={!!previewAttachment}
+            onClose={() => setPreviewAttachment(null)}
+            title={previewAttachment.name}
+            maxWidth="max-w-4xl"
+            className="h-[80vh]"
+          >
+            <div className="w-full h-full flex items-center justify-center bg-slate-50">
+              {previewAttachment.type.startsWith('image/') ? (
+                <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-full object-contain" />
+              ) : previewAttachment.type.startsWith('video/') ? (
+                <video src={previewAttachment.url} controls className="max-w-full max-h-full" />
+              ) : previewAttachment.type.startsWith('audio/') ? (
+                <audio src={previewAttachment.url} controls />
+              ) : (
+                <iframe
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(previewAttachment.url || '')}&embedded=true`}
+                  className="w-full h-full border-none"
+                  title="Document Preview"
+                />
+              )}
+            </div>
+          </Modal>
+        )
+      }
+    </Modal >
   );
 };
 
@@ -1088,6 +1138,7 @@ const SubtaskEditor: React.FC<{
   const [formData, setFormData] = useState<SubTask>(subtask);
   const [newComment, setNewComment] = useState('');
   const [showAttachments, setShowAttachments] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
   // Mentions state
   const [mentionQuery, setMentionQuery] = useState('');
@@ -1126,15 +1177,35 @@ const SubtaskEditor: React.FC<{
     setFormData(prev => ({ ...prev, comments: prev.comments.filter(c => c.id !== commentId) }));
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newAttachments: Attachment[] = Array.from(e.target.files).map((file: File) => ({
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        type: file.type,
-        url: URL.createObjectURL(file)
-      }));
+      const files = Array.from(e.target.files);
+      const newAttachments: Attachment[] = [];
+
+      for (const file of files) {
+        try {
+          const fileName = `${Date.now()}_subtask_${Math.random().toString(36).substr(2, 5)}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+          const { error } = await supabase.storage.from('attachments').upload(fileName, file);
+
+          if (error) {
+            console.error('Subtask attachment upload error:', error);
+            continue;
+          }
+
+          const { data } = supabase.storage.from('attachments').getPublicUrl(fileName);
+
+          newAttachments.push({
+            id: Date.now().toString() + Math.random(),
+            name: file.name,
+            size: (file.size / 1024).toFixed(1) + ' KB',
+            type: file.type,
+            url: data.publicUrl
+          });
+        } catch (err) {
+          console.error('Error processing subtask attachment:', err);
+        }
+      }
+
       setFormData(prev => ({ ...prev, attachments: [...prev.attachments, ...newAttachments] }));
       e.target.value = ''; // Reset
     }
@@ -1421,12 +1492,12 @@ const SubtaskEditor: React.FC<{
                         <div className="w-6 h-6 bg-slate-50 rounded border border-slate-100 flex items-center justify-center text-indigo-500 mr-2">
                           <FileText size={12} />
                         </div>
-                        <div className="flex-1 min-w-0">
+                        <button type="button" onClick={() => att.url && setPreviewAttachment(att)} className="flex-1 min-w-0 text-left hover:text-indigo-600">
                           <p className="text-xs font-medium text-slate-700 truncate">{att.name}</p>
                           <p className="text-[10px] text-slate-400">{att.size}</p>
-                        </div>
+                        </button>
                         <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity px-1">
-                          <a href={att.url} download className="text-slate-400 hover:text-indigo-600"><Download size={12} /></a>
+                          <a href={att.url} download target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-indigo-600"><Download size={12} /></a>
                           {!readOnly && <button type="button" onClick={() => removeAttachment(att.id)} className="text-slate-400 hover:text-red-500"><Trash2 size={12} /></button>}
                         </div>
                       </div>
@@ -1450,7 +1521,35 @@ const SubtaskEditor: React.FC<{
         </div>
 
       </form>
-    </Modal>
+
+      {
+        previewAttachment && (
+          <Modal
+            isOpen={!!previewAttachment}
+            onClose={() => setPreviewAttachment(null)}
+            title={previewAttachment.name}
+            maxWidth="max-w-4xl"
+            className="h-[80vh]"
+          >
+            <div className="w-full h-full flex items-center justify-center bg-slate-50">
+              {previewAttachment.type.startsWith('image/') ? (
+                <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-full object-contain" />
+              ) : previewAttachment.type.startsWith('video/') ? (
+                <video src={previewAttachment.url} controls className="max-w-full max-h-full" />
+              ) : previewAttachment.type.startsWith('audio/') ? (
+                <audio src={previewAttachment.url} controls />
+              ) : (
+                <iframe
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(previewAttachment.url || '')}&embedded=true`}
+                  className="w-full h-full border-none"
+                  title="Document Preview"
+                />
+              )}
+            </div>
+          </Modal>
+        )
+      }
+    </Modal >
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useApp } from '../store';
+import { supabase } from '../supabaseClient';
 import {
   Send, Phone, Mic, MicOff,
   Monitor, PhoneOff, Search, Users, ChevronLeft,
@@ -24,6 +25,7 @@ export const Communication: React.FC = () => {
   const [showMobileChat, setShowMobileChat] = useState(false);
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [viewMode, setViewMode] = useState<'default' | 'fullscreen' | 'pip'>('default');
+  const [previewAttachment, setPreviewAttachment] = useState<Attachment | null>(null);
 
   // Call UI State
   const [pinnedUserId, setPinnedUserId] = useState<string | null>(null);
@@ -45,6 +47,7 @@ export const Communication: React.FC = () => {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const fileMapRef = useRef<Map<string, File>>(new Map());
 
   const isGroup = (chat: any): chat is Group => {
     return chat && 'memberIds' in chat;
@@ -115,12 +118,36 @@ export const Communication: React.FC = () => {
   }, []);
 
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
     if (inputText.trim() || attachments.length > 0) {
-      addMessage(inputText, selectedChat?.id, attachments);
+      // Upload files if any
+      const finalAttachments = await Promise.all(attachments.map(async (att) => {
+        const file = fileMapRef.current.get(att.id);
+        if (file) {
+          try {
+            const fileName = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+            const { error: uploadError } = await supabase.storage.from('attachments').upload(fileName, file);
+
+            if (uploadError) {
+              console.error('File upload error:', uploadError);
+              return att;
+            }
+
+            const { data: { publicUrl } } = supabase.storage.from('attachments').getPublicUrl(fileName);
+            return { ...att, url: publicUrl };
+          } catch (err) {
+            console.error('File processing error:', err);
+            return att;
+          }
+        }
+        return att;
+      }));
+
+      addMessage(inputText, selectedChat?.id, finalAttachments);
       setInputText('');
       setAttachments([]);
+      fileMapRef.current.clear();
 
       // Ensure the chat remains visible if it was manual
       if (selectedChat) {
@@ -131,13 +158,17 @@ export const Communication: React.FC = () => {
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      const newAttachments: Attachment[] = Array.from(e.target.files).map((file: File) => ({
-        id: Date.now().toString() + Math.random(),
-        name: file.name,
-        size: (file.size / 1024).toFixed(1) + ' KB',
-        type: file.type,
-        url: URL.createObjectURL(file)
-      }));
+      const newAttachments: Attachment[] = Array.from(e.target.files).map((file: File) => {
+        const id = Date.now().toString() + Math.random();
+        fileMapRef.current.set(id, file);
+        return {
+          id,
+          name: file.name,
+          size: (file.size / 1024).toFixed(1) + ' KB',
+          type: file.type,
+          url: URL.createObjectURL(file)
+        };
+      });
       setAttachments(prev => [...prev, ...newAttachments]);
       e.target.value = '';
     }
@@ -145,6 +176,7 @@ export const Communication: React.FC = () => {
 
   const removeAttachment = (id: string) => {
     setAttachments(prev => prev.filter(a => a.id !== id));
+    fileMapRef.current.delete(id);
   };
 
   const handleChatSelect = (chat: User | Group | null) => {
@@ -1006,12 +1038,10 @@ export const Communication: React.FC = () => {
                           {msg.attachments && msg.attachments.length > 0 && (
                             <div className={`grid grid-cols-2 gap-2 ${msg.text ? 'mt-3 pt-2 border-t ' + (isMe ? 'border-indigo-500' : 'border-slate-100') : ''}`}>
                               {msg.attachments.map(att => (
-                                <a
+                                <button
                                   key={att.id}
-                                  href={att.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`flex flex-col p-2 rounded ${isMe ? 'bg-indigo-700 hover:bg-indigo-800' : 'bg-slate-50 hover:bg-slate-100'} transition-colors`}
+                                  onClick={() => att.url && setPreviewAttachment(att)}
+                                  className={`flex flex-col p-2 rounded ${isMe ? 'bg-indigo-700 hover:bg-indigo-800' : 'bg-slate-50 hover:bg-slate-100'} transition-colors w-full text-left`}
                                 >
                                   {att.type.startsWith('image/') ? (
                                     <img src={att.url} alt={att.name} className="w-full h-24 object-cover rounded mb-1 bg-black/10" />
@@ -1021,7 +1051,7 @@ export const Communication: React.FC = () => {
                                     </div>
                                   )}
                                   <span className="text-[10px] truncate w-full block opacity-80">{att.name}</span>
-                                </a>
+                                </button>
                               ))}
                             </div>
                           )}
@@ -1191,6 +1221,33 @@ export const Communication: React.FC = () => {
               {selectedUserIdsForGroup.length > 1 ? 'Create Group' : 'Start Chat'}
             </button>
           </div>
+        </div>
+      </Modal>
+      <Modal
+        isOpen={!!previewAttachment}
+        onClose={() => setPreviewAttachment(null)}
+        title={previewAttachment?.name || 'Attachment Preview'}
+        maxWidth="max-w-4xl"
+        className="h-[80vh]"
+      >
+        <div className="w-full h-full flex items-center justify-center bg-slate-50">
+          {previewAttachment && (
+            <>
+              {previewAttachment.type.startsWith('image/') ? (
+                <img src={previewAttachment.url} alt={previewAttachment.name} className="max-w-full max-h-full object-contain" />
+              ) : previewAttachment.type.startsWith('video/') ? (
+                <video src={previewAttachment.url} controls className="max-w-full max-h-full" />
+              ) : previewAttachment.type.startsWith('audio/') ? (
+                <audio src={previewAttachment.url} controls />
+              ) : (
+                <iframe
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(previewAttachment.url || '')}&embedded=true`}
+                  className="w-full h-full border-none"
+                  title="Document Preview"
+                />
+              )}
+            </>
+          )}
         </div>
       </Modal>
     </div>
