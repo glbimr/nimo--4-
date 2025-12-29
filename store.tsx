@@ -531,6 +531,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const updateTask = async (t: Task) => {
+    // Optimistic Update
+    setTasks(prev => prev.map(task => task.id === t.id ? t : task));
+
     await supabase.from('tasks').update({
       title: t.title,
       description: t.description,
