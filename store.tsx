@@ -40,7 +40,7 @@ interface AppContextType {
   addTask: (t: Task) => void;
   updateTask: (t: Task) => void;
   deleteTask: (id: string) => Promise<void>;
-  moveTask: (taskId: string, newStatus: TaskStatus, newOrder?: number) => void;
+  moveTask: (taskId: string, newStatus: TaskStatus) => void;
   addMessage: (text: string, recipientId?: string, attachments?: Attachment[]) => void;
   createGroup: (name: string, memberIds: string[]) => Promise<string | null>;
   addProject: (name: string, description: string) => void;
@@ -541,10 +541,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabase.from('tasks').delete().eq('id', id);
   };
 
-  const moveTask = async (id: string, s: TaskStatus, newOrder?: number) => {
-    const updates: any = { status: s };
-    if (newOrder !== undefined) updates.order = newOrder;
-    await supabase.from('tasks').update(updates).eq('id', id);
+  const moveTask = async (id: string, s: TaskStatus) => {
+    await supabase.from('tasks').update({ status: s }).eq('id', id);
   };
 
   const addMessage = async (text: string, recipientId?: string, attachments: Attachment[] = []) => {
