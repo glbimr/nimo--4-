@@ -261,13 +261,11 @@ const TaskCardItem: React.FC<{
                   >
                     {sub.completed ? <CheckSquare size={16} /> : <Square size={16} />}
                   </button>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center mb-0.5">
-                      <span className={`text-xs font-medium truncate ${sub.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
-                        {sub.title}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
+                  <div className="min-w-0 flex-1 flex items-center gap-2">
+                    <span className={`text-xs font-medium truncate ${sub.completed ? 'line-through text-slate-400' : 'text-slate-700'}`}>
+                      {sub.title}
+                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0">
                       <span className={`text-[10px] px-1.5 py-0.5 rounded border capitalize ${sub.priority === 'high' ? 'bg-red-50 text-red-600 border-red-100' :
                         sub.priority === 'medium' ? 'bg-orange-50 text-orange-600 border-orange-100' :
                           'bg-slate-100 text-slate-500 border-slate-200'
