@@ -608,8 +608,13 @@ const TaskEditor: React.FC<{
       comments: [],
       createdAt: Date.now()
     };
-    setFormData(prev => ({ ...prev, subtasks: [...prev.subtasks, newSub] }));
+    const updatedSubtasks = [...formData.subtasks, newSub];
+    const updatedTask = { ...formData, subtasks: updatedSubtasks };
+    setFormData(updatedTask);
     setNewSubtaskTitle('');
+    if (task) {
+      updateTask(updatedTask);
+    }
   };
 
   const addComment = () => {
@@ -941,9 +946,11 @@ const TaskEditor: React.FC<{
                             <button
                               type="button"
                               onClick={() => {
-                                if (!readOnly) {
-                                  const updated = formData.subtasks.map(s => s.id === sub.id ? { ...s, completed: !s.completed, status: !s.completed ? TaskStatus.DONE : TaskStatus.TODO } : s);
-                                  setFormData({ ...formData, subtasks: updated });
+                                const updatedSubtasks = formData.subtasks.map(s => s.id === sub.id ? { ...s, completed: !s.completed, status: !s.completed ? TaskStatus.DONE : TaskStatus.TODO } : s);
+                                const updatedTask = { ...formData, subtasks: updatedSubtasks };
+                                setFormData(updatedTask);
+                                if (!readOnly && task) {
+                                  updateTask(updatedTask);
                                 }
                               }}
                               disabled={readOnly}
@@ -967,7 +974,11 @@ const TaskEditor: React.FC<{
                               <button
                                 type="button"
                                 onClick={() => {
-                                  setFormData(prev => ({ ...prev, subtasks: prev.subtasks.filter(s => s.id !== sub.id) }));
+                                  const updatedTask = { ...formData, subtasks: formData.subtasks.filter(s => s.id !== sub.id) };
+                                  setFormData(updatedTask);
+                                  if (task) {
+                                    updateTask(updatedTask);
+                                  }
                                 }}
                                 className="p-1 text-slate-400 hover:text-red-500"
                               >
@@ -1049,11 +1060,15 @@ const TaskEditor: React.FC<{
           onClose={() => setLocalEditingSubtask(null)}
           readOnly={readOnly}
           onUpdate={(updatedSub) => {
-            setFormData(prev => ({
-              ...prev,
-              subtasks: prev.subtasks.map(s => s.id === updatedSub.id ? updatedSub : s)
-            }));
+            const updatedTask = {
+              ...formData,
+              subtasks: formData.subtasks.map(s => s.id === updatedSub.id ? updatedSub : s)
+            };
+            setFormData(updatedTask);
             setLocalEditingSubtask(null);
+            if (task) {
+              updateTask(updatedTask);
+            }
           }}
         />
       )}
