@@ -1194,9 +1194,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const stream = localStreamRef.current || localStream;
     if (peerConnectionsRef.current.size === 0 || !stream) return;
     try {
-      // 1. Capture existing audio tracks to preserve them
-      // Use filter to ensure we get live tracks
-      const audioTracks = stream.getAudioTracks().filter(t => t.readyState === 'live');
+      // 1. Identify active audio track
+      const audioTrack = stream.getAudioTracks().find(t => t.readyState === 'live');
 
       // 2. Stop and remove screen/video tracks
       stream.getVideoTracks().forEach(track => {
@@ -1209,23 +1208,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsScreenSharing(false);
       setIsCameraOn(false);
 
-      // 3. Notify peers by replacing video track with null
       const replacePromises = [];
+
       for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
         const transceivers = pc.getTransceivers();
+
+        // 3. Clear Video Sender
         const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
         if (videoTransceiver && videoTransceiver.sender) {
           replacePromises.push(videoTransceiver.sender.replaceTrack(null));
         }
+
+        // 4. Force Re-attach Audio Sender (The Fix)
+        // This ensures the audio sender is explicitly pointing to our live audio track.
+        // Even if it was already attached, this operation is safe and confirms the link.
+        const audioTransceiver = transceivers.find(t => t.receiver.track.kind === 'audio');
+        if (audioTransceiver && audioTransceiver.sender && audioTrack) {
+          replacePromises.push(audioTransceiver.sender.replaceTrack(audioTrack));
+        }
       }
+
       await Promise.all(replacePromises);
 
-      // 4. Create new local stream preserving ONLY audio tracks
-      const newStream = new MediaStream(audioTracks);
+      // 5. Update Local Stream State
+      // We create a new object to trigger React updates, but it contains the SAME audio track 
+      // that we just confirmed is attached to the sender.
+      const newStream = new MediaStream(audioTrack ? [audioTrack] : []);
       setLocalStream(newStream);
       localStreamRef.current = newStream;
 
-      // 5. Force renegotiation
+      // 6. Force renegotiation
       await renegotiate();
     } catch (e) {
       console.error("Error stopping screen share:", e);
