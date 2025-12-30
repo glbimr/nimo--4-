@@ -929,12 +929,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleMic = async () => {
-    let stream = localStream;
+    let stream = localStreamRef.current || localStream;
 
     // 1. Ensure we have a local stream
     if (!stream) {
       stream = new MediaStream();
       setLocalStream(stream);
+      // Update ref immediately for this cycle
+      localStreamRef.current = stream;
     }
 
     const audioTracks = stream.getAudioTracks();
@@ -961,7 +963,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         }
 
         // Force update local stream reference
-        setLocalStream(new MediaStream(stream.getTracks()));
+        const newStream = new MediaStream(stream.getTracks());
+        setLocalStream(newStream);
+        localStreamRef.current = newStream;
 
         // Renegotiate to ensure peers receive the new track
         await renegotiate();
@@ -979,7 +983,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     audioTracks.forEach(t => t.enabled = newStatus);
     setIsMicOn(newStatus);
 
-    // Force renegotiation to ensure status sync if needed (mostly for UI reflection on remote side)
+    // Force renegotiation to ensure status sync if needed
     if (newStatus) {
       await renegotiate();
     }
@@ -1187,16 +1191,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const stopScreenSharing = async () => {
-    if (peerConnectionsRef.current.size === 0 || !localStream) return;
+    const stream = localStreamRef.current || localStream;
+    if (peerConnectionsRef.current.size === 0 || !stream) return;
     try {
       // 1. Capture existing audio tracks to preserve them
-      const audioTracks = localStream.getAudioTracks();
+      // Use filter to ensure we get live tracks
+      const audioTracks = stream.getAudioTracks().filter(t => t.readyState === 'live');
 
       // 2. Stop and remove screen/video tracks
-      localStream.getVideoTracks().forEach(track => {
+      stream.getVideoTracks().forEach(track => {
         if (track.label.includes('screen') || track.getSettings().displaySurface) {
           track.stop();
-          localStream.removeTrack(track);
+          stream.removeTrack(track);
         }
       });
 
@@ -1204,18 +1210,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsCameraOn(false);
 
       // 3. Notify peers by replacing video track with null
+      const replacePromises = [];
       for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
         const transceivers = pc.getTransceivers();
         const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
         if (videoTransceiver && videoTransceiver.sender) {
-          await videoTransceiver.sender.replaceTrack(null);
+          replacePromises.push(videoTransceiver.sender.replaceTrack(null));
         }
       }
+      await Promise.all(replacePromises);
 
       // 4. Create new local stream preserving ONLY audio tracks
-      // This ensures we don't have lingering stopped tracks and the stream is clean
       const newStream = new MediaStream(audioTracks);
       setLocalStream(newStream);
+      localStreamRef.current = newStream;
 
       // 5. Force renegotiation
       await renegotiate();
@@ -1225,7 +1233,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleScreenShare = async () => {
-    if (peerConnectionsRef.current.size === 0 || !localStream) return;
+    const stream = localStreamRef.current || localStream;
+    if (peerConnectionsRef.current.size === 0 || !stream) return;
 
     if (isScreenSharing) {
       await stopScreenSharing();
@@ -1248,12 +1257,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // If camera is on, stop it first (mutually exclusive video track for simplicity)
         if (isCameraOn) {
-          localStream.getVideoTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
+          stream.getVideoTracks().forEach(t => { t.stop(); stream.removeTrack(t); });
           setIsCameraOn(false);
         }
 
         // Add to local stream for local preview
-        localStream.addTrack(screenTrack);
+        stream.addTrack(screenTrack);
 
         // Handle stream ending (user clicks "Stop Sharing" in browser UI)
         screenTrack.onended = () => {
@@ -1261,20 +1270,24 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         };
 
         // Update all peers
+        const replacePromises = [];
         for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
           const transceivers = pc.getTransceivers();
           const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
 
           if (videoTransceiver && videoTransceiver.sender) {
-            await videoTransceiver.sender.replaceTrack(screenTrack);
             videoTransceiver.direction = 'sendrecv';
+            replacePromises.push(videoTransceiver.sender.replaceTrack(screenTrack));
           } else {
-            pc.addTrack(screenTrack, localStream);
+            pc.addTrack(screenTrack, stream);
           }
         }
+        await Promise.all(replacePromises);
 
         setIsScreenSharing(true);
-        setLocalStream(new MediaStream(localStream.getTracks()));
+        const newStream = new MediaStream(stream.getTracks());
+        setLocalStream(newStream);
+        localStreamRef.current = newStream;
 
         await renegotiate();
 
