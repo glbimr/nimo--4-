@@ -573,6 +573,10 @@ const TaskEditor: React.FC<{
   const commentInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Title Edit State
+  const [isTitleActive, setIsTitleActive] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
   // Description Edit State
   const [isDescriptionActive, setIsDescriptionActive] = useState(false);
   const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
@@ -718,13 +722,37 @@ const TaskEditor: React.FC<{
 
               {/* Title */}
               <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Task Title
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!readOnly) {
+                        const newState = !isTitleActive;
+                        setIsTitleActive(newState);
+                        if (newState) setTimeout(() => titleInputRef.current?.focus(), 0);
+                      }
+                    }}
+                    disabled={readOnly}
+                    className={`p-1.5 rounded transition-all ${isTitleActive ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'}`}
+                    title={isTitleActive ? "Disable Editing" : "Enable Editing"}
+                  >
+                    {readOnly ? <Eye size={14} /> : <Pencil size={14} />}
+                  </button>
+                </div>
                 <input
+                  ref={titleInputRef}
                   required
-                  readOnly={readOnly}
+                  readOnly={readOnly || !isTitleActive}
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent"
+                  className={`w-full text-xl md:text-2xl font-bold rounded-lg px-4 py-3 outline-none transition-all border
+                        ${isTitleActive
+                      ? 'bg-white border-indigo-200 text-slate-800 shadow-sm ring-2 ring-indigo-50/50'
+                      : 'bg-slate-50 border-slate-100 text-slate-700 cursor-default'}`}
                   placeholder="Task Title"
                 />
               </div>
@@ -1146,6 +1174,10 @@ const SubtaskEditor: React.FC<{
   const commentInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Title Edit State
+  const [isTitleActive, setIsTitleActive] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
   // Description Edit State
   const [isDescriptionActive, setIsDescriptionActive] = useState(false);
   const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
@@ -1260,13 +1292,37 @@ const SubtaskEditor: React.FC<{
               </div>
 
               <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Subtask Title
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!readOnly) {
+                        const newState = !isTitleActive;
+                        setIsTitleActive(newState);
+                        if (newState) setTimeout(() => titleInputRef.current?.focus(), 0);
+                      }
+                    }}
+                    disabled={readOnly}
+                    className={`p-1.5 rounded transition-all ${isTitleActive ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'}`}
+                    title={isTitleActive ? "Disable Editing" : "Enable Editing"}
+                  >
+                    {readOnly ? <Eye size={14} /> : <Pencil size={14} />}
+                  </button>
+                </div>
                 <input
+                  ref={titleInputRef}
                   required
-                  readOnly={readOnly}
+                  readOnly={readOnly || !isTitleActive}
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent"
+                  className={`w-full text-xl md:text-2xl font-bold rounded-lg px-4 py-3 outline-none transition-all border
+                        ${isTitleActive
+                      ? 'bg-white border-indigo-200 text-slate-800 shadow-sm ring-2 ring-indigo-50/50'
+                      : 'bg-slate-50 border-slate-100 text-slate-700 cursor-default'}`}
                   placeholder="Subtask Title"
                 />
               </div>
