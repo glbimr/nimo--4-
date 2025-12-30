@@ -268,7 +268,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           // Fetch the decrypted message from the view since the real-time payload is encrypted
           const { data } = await supabase.from('decrypted_messages').select('*').eq('id', payload.new.id).single();
           if (data) {
-            setMessages(prev => [...prev, mapMessageFromDB(data)]);
+            setMessages(prev => {
+              if (prev.some(m => m.id === data.id)) return prev;
+              return [...prev, mapMessageFromDB(data)];
+            });
           }
         }
       })
