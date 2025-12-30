@@ -938,6 +938,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const newStatus = !isMicOn;
       audioTracks.forEach(t => t.enabled = newStatus);
       setIsMicOn(newStatus);
+
+      // Force renegotiation to ensure audio transmission starts immediately
+      // This fixes the issue where audio would only start after screen sharing (which triggers renegotiation)
+      if (newStatus) {
+        await renegotiate();
+      }
     } else {
       console.warn("No audio tracks found to toggle.");
     }
