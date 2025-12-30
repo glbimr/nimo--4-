@@ -1153,7 +1153,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const stopScreenSharing = async () => {
     if (peerConnectionsRef.current.size === 0 || !localStream) return;
     try {
-      // Stop screen tracks
+      // 1. Capture existing audio tracks to preserve them
+      const audioTracks = localStream.getAudioTracks();
+
+      // 2. Stop and remove screen/video tracks
       localStream.getVideoTracks().forEach(track => {
         if (track.label.includes('screen') || track.getSettings().displaySurface) {
           track.stop();
@@ -1164,18 +1167,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setIsScreenSharing(false);
       setIsCameraOn(false);
 
-      // Notify peers by replacing video track with null
+      // 3. Notify peers by replacing video track with null
       for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
         const transceivers = pc.getTransceivers();
         const videoTransceiver = transceivers.find(t => t.receiver.track.kind === 'video');
         if (videoTransceiver && videoTransceiver.sender) {
-          videoTransceiver.sender.replaceTrack(null);
+          await videoTransceiver.sender.replaceTrack(null);
         }
       }
 
-      setLocalStream(new MediaStream(localStream.getTracks()));
+      // 4. Create new local stream preserving ONLY audio tracks
+      // This ensures we don't have lingering stopped tracks and the stream is clean
+      const newStream = new MediaStream(audioTracks);
+      setLocalStream(newStream);
 
-      // Force renegotiation to ensure peers handle the track removal correctly
+      // 5. Force renegotiation
       await renegotiate();
     } catch (e) {
       console.error("Error stopping screen share:", e);
