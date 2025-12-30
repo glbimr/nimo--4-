@@ -225,13 +225,22 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // --- 1.1 Fetch Deleted Messages ---
   useEffect(() => {
     if (currentUser) {
-      const fetchDeleted = async () => {
-        const { data } = await supabase.from('deleted_messages').select('message_id').eq('user_id', currentUser.id);
-        if (data) {
-          setDeletedMessageIds(new Set(data.map(d => d.message_id)));
+      const fetchDeletedAndRead = async () => {
+        // Fetch Deleted Messages
+        const { data: deletedData } = await supabase.from('deleted_messages').select('message_id').eq('user_id', currentUser.id);
+        if (deletedData) {
+          setDeletedMessageIds(new Set(deletedData.map(d => d.message_id)));
+        }
+
+        // Fetch Read Receipts
+        const { data: receipts } = await supabase.from('read_receipts').select('*').eq('user_id', currentUser.id);
+        if (receipts) {
+          const map: Record<string, number> = {};
+          receipts.forEach((r: any) => map[r.chat_id] = r.last_read_timestamp);
+          setLastReadTimestamps(map);
         }
       };
-      fetchDeleted();
+      fetchDeletedAndRead();
     } else {
       setDeletedMessageIds(new Set());
     }
@@ -769,7 +778,18 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await supabase.from('notifications').update({ read: true }).eq('recipient_id', currentUser.id);
   };
 
-  const markChatRead = (chatId: string) => setLastReadTimestamps(prev => ({ ...prev, [chatId]: Date.now() }));
+  const markChatRead = async (chatId: string) => {
+    const now = Date.now();
+    setLastReadTimestamps(prev => ({ ...prev, [chatId]: now }));
+
+    if (currentUser) {
+      await supabase.from('read_receipts').upsert({
+        user_id: currentUser.id,
+        chat_id: chatId,
+        last_read_timestamp: now
+      });
+    }
+  };
 
   const getUnreadCount = (chatId: string) => {
     if (!currentUser) return 0;
