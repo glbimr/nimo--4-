@@ -33,6 +33,7 @@ export const AdminPanel: React.FC = () => {
   const [isProjectModalOpen, setIsProjectModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [projectSearchTerm, setProjectSearchTerm] = useState('');
+  const [projectToDelete, setProjectToDelete] = useState<Project | null>(null);
 
   const [projectFormData, setProjectFormData] = useState({
     name: '',
@@ -330,7 +331,7 @@ export const AdminPanel: React.FC = () => {
                             <PenLine size={18} />
                           </button>
                           <button
-                            onClick={() => deleteProject(project.id)}
+                            onClick={() => setProjectToDelete(project)}
                             className="text-slate-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
                             title="Delete Project"
                           >
@@ -601,6 +602,42 @@ export const AdminPanel: React.FC = () => {
               className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium shadow-md shadow-red-200 transition-colors"
             >
               Delete User
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!projectToDelete}
+        onClose={() => setProjectToDelete(null)}
+        title="Confirm Project Deletion"
+        maxWidth="max-w-md"
+        className="h-auto"
+      >
+        <div className="p-6">
+          <div className="flex items-center justify-center w-12 h-12 rounded-full bg-red-100 text-red-600 mb-4 mx-auto">
+            <AlertTriangle size={24} />
+          </div>
+          <p className="text-center text-slate-600 mb-6">
+            Are you sure you want to delete project <span className="font-bold text-slate-800">{projectToDelete?.name}</span>? This action cannot be undone and will delete all associated tasks.
+          </p>
+          <div className="flex justify-end space-x-3">
+            <button
+              onClick={() => setProjectToDelete(null)}
+              className="px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-lg text-sm font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => {
+                if (projectToDelete) {
+                  deleteProject(projectToDelete.id);
+                  setProjectToDelete(null);
+                }
+              }}
+              className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium shadow-md shadow-red-200 transition-colors"
+            >
+              Delete Project
             </button>
           </div>
         </div>
