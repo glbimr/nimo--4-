@@ -724,7 +724,7 @@ const TaskEditor: React.FC<{
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent"
+                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 outline-none bg-transparent border border-slate-100 rounded-lg px-3 py-2 hover:border-slate-200 focus:border-indigo-200 transition-colors"
                   placeholder="Task Title"
                 />
               </div>
@@ -1266,7 +1266,7 @@ const SubtaskEditor: React.FC<{
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 border-none outline-none bg-transparent"
+                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 outline-none bg-transparent border border-slate-100 rounded-lg px-3 py-2 hover:border-slate-200 focus:border-indigo-200 transition-colors"
                   placeholder="Subtask Title"
                 />
               </div>
