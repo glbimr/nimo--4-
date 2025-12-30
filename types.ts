@@ -127,6 +127,7 @@ export interface ChatMessage {
   timestamp: number;
   type: 'text' | 'system' | 'missed_call';
   attachments?: Attachment[];
+  isRead?: boolean;
 }
 
 export interface CallState {

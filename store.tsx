@@ -166,7 +166,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     text: m.text,
     timestamp: m.timestamp,
     type: m.type,
-    attachments: m.attachments
+    attachments: m.attachments,
+    isRead: m.is_read || false
   });
   const mapNotificationFromDB = (n: any): Notification => ({
     id: n.id,
@@ -282,6 +283,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
               return [...prev, mapMessageFromDB(data)];
             });
           }
+        }
+        // Handle UPDATE (e.g. Reads)
+        if (payload.eventType === 'UPDATE') {
+          setMessages(prev => prev.map(m => m.id === payload.new.id ? { ...m, isRead: payload.new.is_read } : m));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'users' }, payload => {
@@ -779,32 +784,45 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const markChatRead = async (chatId: string) => {
-    const now = Date.now();
-    setLastReadTimestamps(prev => ({ ...prev, [chatId]: now }));
+    if (!currentUser) return;
 
-    if (currentUser) {
-      // Use secure RPC to update read receipt
-      const { error } = await supabase.rpc('mark_chat_read', {
-        p_user_id: currentUser.id,
-        p_chat_id: chatId,
-        p_timestamp: now
-      });
-      if (error) {
-        console.warn("Read receipt sync failed (Check if RPC 'mark_chat_read' exists):", error.message);
+    // Optimistically mark messages as read in local state
+    setMessages(prev => prev.map(m => {
+      // Only mark unread messages for this chat
+      const isTarget = (chatId === 'general' && !m.recipientId) ||
+        (chatId.startsWith('g-') && m.recipientId === chatId) ||
+        (m.senderId === chatId && m.recipientId === currentUser.id); // For DMs, sender is the chat ID
+
+      if (isTarget && !m.isRead && m.senderId !== currentUser.id) {
+        return { ...m, isRead: true };
       }
-    }
+      return m;
+    }));
+
+    // RPC to update DB
+    await supabase.rpc('mark_messages_read', {
+      p_chat_id: chatId,
+      p_user_id: currentUser.id
+    });
   };
 
   const getUnreadCount = (chatId: string) => {
     if (!currentUser) return 0;
-    const lastRead = lastReadTimestamps[chatId] || 0;
+
     return messages.filter(m => {
-      if (deletedMessageIds.has(m.id)) return false; // Ignore deleted messages
-      const isRelevant =
-        (chatId !== 'general' && !chatId.startsWith('g-') && m.senderId === chatId && m.recipientId === currentUser.id) ||
-        (chatId.startsWith('g-') && m.recipientId === chatId && m.senderId !== currentUser.id) ||
-        (chatId === 'general' && !m.recipientId && m.senderId !== currentUser.id);
-      return isRelevant && m.timestamp > lastRead;
+      if (deletedMessageIds.has(m.id)) return false;
+      if (m.isRead) return false; // Already read
+
+      if (chatId === 'general') {
+        // Global chat: User is NOT the sender
+        return !m.recipientId && m.senderId !== currentUser.id;
+      }
+      if (chatId.startsWith('g-')) {
+        // Group chat
+        return m.recipientId === chatId && m.senderId !== currentUser.id;
+      }
+      // DM
+      return m.senderId === chatId && m.senderId !== currentUser.id; // Corrected logic: Sender is the Chat Partner, User is recipient
     }).length;
   };
 
