@@ -783,11 +783,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLastReadTimestamps(prev => ({ ...prev, [chatId]: now }));
 
     if (currentUser) {
-      await supabase.from('read_receipts').upsert({
-        user_id: currentUser.id,
-        chat_id: chatId,
-        last_read_timestamp: now
+      // Use secure RPC to update read receipt
+      const { error } = await supabase.rpc('mark_chat_read', {
+        p_chat_id: chatId,
+        p_timestamp: now
       });
+      if (error) {
+        console.warn("Read receipt sync failed (Check if RPC 'mark_chat_read' exists):", error.message);
+      }
     }
   };
 
