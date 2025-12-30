@@ -929,23 +929,59 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleMic = async () => {
-    if (!localStream) return;
-    const audioTracks = localStream.getAudioTracks();
+    let stream = localStream;
 
-    // Simply toggle 'enabled' status of existing tracks.
-    // Do not attempt to add/remove tracks here to avoid renegotiation conflicts with video/screen share.
-    if (audioTracks.length > 0) {
-      const newStatus = !isMicOn;
-      audioTracks.forEach(t => t.enabled = newStatus);
-      setIsMicOn(newStatus);
+    // 1. Ensure we have a local stream
+    if (!stream) {
+      stream = new MediaStream();
+      setLocalStream(stream);
+    }
 
-      // Force renegotiation to ensure audio transmission starts immediately
-      // This fixes the issue where audio would only start after screen sharing (which triggers renegotiation)
-      if (newStatus) {
+    const audioTracks = stream.getAudioTracks();
+
+    // 2. If NO audio tracks, acquire them (Recovery Mode)
+    if (audioTracks.length === 0) {
+      try {
+        const newAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const newTrack = newAudioStream.getAudioTracks()[0];
+
+        stream.addTrack(newTrack);
+        setIsMicOn(true); // Default to ON if we just asked for permission
+
+        // Add this new track to all Peer Connections
+        for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
+          const transceivers = pc.getTransceivers();
+          const audioTransceiver = transceivers.find(t => t.receiver.track.kind === 'audio');
+
+          if (audioTransceiver && audioTransceiver.sender) {
+            await audioTransceiver.sender.replaceTrack(newTrack);
+          } else {
+            pc.addTrack(newTrack, stream);
+          }
+        }
+
+        // Force update local stream reference
+        setLocalStream(new MediaStream(stream.getTracks()));
+
+        // Renegotiate to ensure peers receive the new track
         await renegotiate();
+        return;
+
+      } catch (e) {
+        console.error("Failed to acquire microphone:", e);
+        alert("Could not access microphone.");
+        return;
       }
-    } else {
-      console.warn("No audio tracks found to toggle.");
+    }
+
+    // 3. Normal Toggle Mode (existing tracks)
+    const newStatus = !isMicOn;
+    audioTracks.forEach(t => t.enabled = newStatus);
+    setIsMicOn(newStatus);
+
+    // Force renegotiation to ensure status sync if needed (mostly for UI reflection on remote side)
+    if (newStatus) {
+      await renegotiate();
     }
   };
 
