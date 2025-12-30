@@ -577,6 +577,10 @@ const TaskEditor: React.FC<{
   const [isDescriptionActive, setIsDescriptionActive] = useState(false);
   const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
 
+  // Title Edit State
+  const [isTitleActive, setIsTitleActive] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (task) {
@@ -1174,6 +1178,10 @@ const SubtaskEditor: React.FC<{
   // Description Edit State
   const [isDescriptionActive, setIsDescriptionActive] = useState(false);
   const descriptionInputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Title Edit State (Added for Subtask)
+  const [isTitleActive, setIsTitleActive] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
