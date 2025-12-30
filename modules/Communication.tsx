@@ -1259,12 +1259,36 @@ const RemoteVideoPlayer: React.FC<{ stream: MediaStream; isMainStage?: boolean }
   const videoRef = useRef<HTMLVideoElement>(null);
   const [, forceUpdate] = useState(0);
   const [playError, setPlayError] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
 
-  // Force re-render if tracks change, ensuring we pick up video tracks added later
+  // Info: Track "enabled" vs "muted"
+  // enabled = Controlled by the source (sender) - but typically reflected as muted=true on receiver if sender sets enabled=false? 
+  // Actually, WebRTC spec says if sender disables track, receiver gets black frames (muted).
+  // If sender stops track/replaces with null, receiver track gets muted.
+
   useEffect(() => {
-    const handleTrack = () => forceUpdate(n => n + 1);
+    const checkVideoStatus = () => {
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack) {
+        setIsVideoMuted(videoTrack.muted || !videoTrack.enabled);
+
+        // Add listeners for dynamic changes
+        videoTrack.onmute = () => setIsVideoMuted(true);
+        videoTrack.onunmute = () => setIsVideoMuted(false);
+        // also listen to ended
+        videoTrack.onended = () => setIsVideoMuted(true);
+      } else {
+        setIsVideoMuted(true);
+      }
+      forceUpdate(n => n + 1);
+    };
+
+    checkVideoStatus();
+
+    const handleTrack = () => checkVideoStatus();
     stream.addEventListener('addtrack', handleTrack);
     stream.addEventListener('removetrack', handleTrack);
+
     return () => {
       stream.removeEventListener('addtrack', handleTrack);
       stream.removeEventListener('removetrack', handleTrack);
@@ -1293,7 +1317,7 @@ const RemoteVideoPlayer: React.FC<{ stream: MediaStream; isMainStage?: boolean }
   }, [stream, stream.getTracks().length, stream.active]); // Added stream.active
 
   // Determine if we should show the video element or a placeholder
-  const hasVideo = stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].enabled;
+  const hasVideo = stream.getVideoTracks().length > 0 && !isVideoMuted;
 
   const retryPlay = () => {
     if (videoRef.current) {
