@@ -717,14 +717,39 @@ const TaskEditor: React.FC<{
             <div className="flex-1 p-6 md:p-8 bg-white border-r border-slate-100">
 
               {/* Title */}
+              {/* Title */}
               <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Title
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!readOnly) {
+                        const newState = !isTitleActive;
+                        setIsTitleActive(newState);
+                        if (newState) setTimeout(() => titleInputRef.current?.focus(), 0);
+                      }
+                    }}
+                    disabled={readOnly}
+                    className={`p-1.5 rounded transition-all ${isTitleActive ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'}`}
+                    title={isTitleActive ? "Disable Editing" : "Enable Editing"}
+                  >
+                    {readOnly ? <Eye size={14} /> : <Pencil size={14} />}
+                  </button>
+                </div>
                 <input
+                  ref={titleInputRef}
                   required
-                  readOnly={readOnly}
+                  readOnly={readOnly || !isTitleActive}
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 outline-none bg-transparent border border-slate-100 rounded-lg px-3 py-2 hover:border-slate-200 focus:border-indigo-200 transition-colors"
+                  className={`w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 outline-none rounded-lg px-3 py-2 transition-colors border
+                      ${isTitleActive
+                      ? 'bg-white border-indigo-200 shadow-sm ring-2 ring-indigo-50/50'
+                      : 'bg-slate-50 border-slate-100 cursor-default'}`}
                   placeholder="Task Title"
                 />
               </div>
@@ -1260,13 +1285,37 @@ const SubtaskEditor: React.FC<{
               </div>
 
               <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                    Title
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!readOnly) {
+                        const newState = !isTitleActive;
+                        setIsTitleActive(newState);
+                        if (newState) setTimeout(() => titleInputRef.current?.focus(), 0);
+                      }
+                    }}
+                    disabled={readOnly}
+                    className={`p-1.5 rounded transition-all ${isTitleActive ? 'bg-indigo-100 text-indigo-600' : 'text-slate-400 hover:text-indigo-600 hover:bg-slate-50'}`}
+                    title={isTitleActive ? "Disable Editing" : "Enable Editing"}
+                  >
+                    {readOnly ? <Eye size={14} /> : <Pencil size={14} />}
+                  </button>
+                </div>
                 <input
+                  ref={titleInputRef}
                   required
-                  readOnly={readOnly}
+                  readOnly={readOnly || !isTitleActive}
                   type="text"
                   value={formData.title}
                   onChange={e => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 outline-none bg-transparent border border-slate-100 rounded-lg px-3 py-2 hover:border-slate-200 focus:border-indigo-200 transition-colors"
+                  className={`w-full text-2xl md:text-3xl font-bold text-slate-800 placeholder-slate-300 outline-none rounded-lg px-3 py-2 transition-colors border
+                      ${isTitleActive
+                      ? 'bg-white border-indigo-200 shadow-sm ring-2 ring-indigo-50/50'
+                      : 'bg-slate-50 border-slate-100 cursor-default'}`}
                   placeholder="Subtask Title"
                 />
               </div>
