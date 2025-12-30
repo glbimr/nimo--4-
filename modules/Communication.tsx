@@ -1258,6 +1258,7 @@ export const Communication: React.FC = () => {
 const RemoteVideoPlayer: React.FC<{ stream: MediaStream; isMainStage?: boolean }> = ({ stream, isMainStage }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [, forceUpdate] = useState(0);
+  const [playError, setPlayError] = useState(false);
 
   // Force re-render if tracks change, ensuring we pick up video tracks added later
   useEffect(() => {
@@ -1274,25 +1275,54 @@ const RemoteVideoPlayer: React.FC<{ stream: MediaStream; isMainStage?: boolean }
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
       // Explicitly call play to ensure audio/video starts
-      videoRef.current.play().catch(e => {
-        if (e.name !== 'AbortError') {
-          console.error("Autoplay failed:", e);
-        }
-      });
+      const playPromise = videoRef.current.play();
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            setPlayError(false);
+          })
+          .catch(e => {
+            if (e.name !== 'AbortError') {
+              console.error("Autoplay failed:", e);
+              setPlayError(true);
+            }
+          });
+      }
     }
-  }, [stream, stream.getTracks().length]); // Dependency on track length critical for renegotiation scenarios
+  }, [stream, stream.getTracks().length, stream.active]); // Added stream.active
 
   // Determine if we should show the video element or a placeholder
   const hasVideo = stream.getVideoTracks().length > 0 && stream.getVideoTracks()[0].enabled;
 
+  const retryPlay = () => {
+    if (videoRef.current) {
+      videoRef.current.play().catch(console.error);
+      setPlayError(false);
+    }
+  };
+
   return (
-    <video
-      ref={videoRef}
-      autoPlay
-      playsInline
-      // Important: Remote streams must NOT be muted, otherwise you won't hear them.
-      muted={false}
-      className={`w-full h-full ${isMainStage ? 'object-contain bg-black' : 'object-cover'} ${!hasVideo ? 'opacity-0' : 'opacity-100'}`}
-    />
+    <div className="relative w-full h-full">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        // Important: Remote streams must NOT be muted, otherwise you won't hear them.
+        muted={false}
+        className={`w-full h-full ${isMainStage ? 'object-contain bg-black' : 'object-cover'} ${!hasVideo ? 'opacity-0' : 'opacity-100'}`}
+      />
+      {playError && (
+        <button
+          onClick={retryPlay}
+          className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/60 text-white cursor-pointer"
+        >
+          <div className="bg-red-500 rounded-full p-4 mb-2 animate-pulse">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </div>
+          <span className="font-bold text-sm">Click to Play Audio</span>
+        </button>
+      )}
+    </div>
   );
 };
