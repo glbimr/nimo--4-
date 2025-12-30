@@ -618,9 +618,6 @@ const TaskEditor: React.FC<{
     const updatedTask = { ...formData, subtasks: updatedSubtasks };
     setFormData(updatedTask);
     setNewSubtaskTitle('');
-    if (task) {
-      updateTask(updatedTask);
-    }
   };
 
   const addComment = () => {
@@ -883,9 +880,6 @@ const TaskEditor: React.FC<{
                     onChange={e => {
                       const newStatus = e.target.value as TaskStatus;
                       setFormData({ ...formData, status: newStatus });
-                      if (task) {
-                        moveTask(task.id, newStatus);
-                      }
                     }}
                     className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 shadow-sm outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all appearance-none cursor-pointer"
                   >
@@ -999,9 +993,6 @@ const TaskEditor: React.FC<{
                                 const updatedSubtasks = formData.subtasks.map(s => s.id === sub.id ? { ...s, completed: !s.completed, status: !s.completed ? TaskStatus.DONE : TaskStatus.TODO } : s);
                                 const updatedTask = { ...formData, subtasks: updatedSubtasks };
                                 setFormData(updatedTask);
-                                if (!readOnly && task) {
-                                  updateTask(updatedTask);
-                                }
                               }}
                               disabled={readOnly}
                               className={`mr-2 flex-shrink-0 ${sub.completed ? 'text-green-500' : 'text-slate-300 hover:text-indigo-500'}`}
@@ -1026,9 +1017,6 @@ const TaskEditor: React.FC<{
                                 onClick={() => {
                                   const updatedTask = { ...formData, subtasks: formData.subtasks.filter(s => s.id !== sub.id) };
                                   setFormData(updatedTask);
-                                  if (task) {
-                                    updateTask(updatedTask);
-                                  }
                                 }}
                                 className="p-1 text-slate-400 hover:text-red-500"
                               >
@@ -1116,9 +1104,6 @@ const TaskEditor: React.FC<{
             };
             setFormData(updatedTask);
             setLocalEditingSubtask(null);
-            if (task) {
-              updateTask(updatedTask);
-            }
           }}
         />
       )}
