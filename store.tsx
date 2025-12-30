@@ -1175,28 +1175,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       setLocalStream(new MediaStream(localStream.getTracks()));
 
-      // 4. Critical: Ensure Audio is still flowing if Mic was ON.
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        if (isMicOn) audioTrack.enabled = true;
-
-        // 5. RE-ATTACH Audio Track to Peer Connection if it was lost
-        for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-          const transceivers = pc.getTransceivers();
-          const audioTransceiver = transceivers.find(t => t.sender.track?.kind === 'audio' || t.receiver.track.kind === 'audio');
-
-          if (audioTransceiver && audioTransceiver.sender) {
-            // Ensure the sender is using our current audio track
-            if (audioTransceiver.sender.track !== audioTrack) {
-              await audioTransceiver.sender.replaceTrack(audioTrack);
-            }
-          } else {
-            // No audio transceiver? Add it (though this is rare if call started with audio)
-            pc.addTrack(audioTrack, localStream);
-          }
-        }
-      }
-
       // Force renegotiation to ensure peers handle the track removal correctly
       await renegotiate();
     } catch (e) {
