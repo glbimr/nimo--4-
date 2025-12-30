@@ -785,6 +785,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     if (currentUser) {
       // Use secure RPC to update read receipt
       const { error } = await supabase.rpc('mark_chat_read', {
+        p_user_id: currentUser.id,
         p_chat_id: chatId,
         p_timestamp: now
       });
