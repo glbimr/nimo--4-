@@ -929,43 +929,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const toggleMic = async () => {
-    // If no stream exists, we can't toggle. However, if tracks are stopped, we might need to "restart" them.
     if (!localStream) return;
+    const audioTracks = localStream.getAudioTracks();
 
-    // Check if the audio track exists and is 'live'
-    let audioTrack = localStream.getAudioTracks()[0];
-    const newStatus = !isMicOn;
-
-    // If we want to turn ON and keys are missing or ended:
-    if (newStatus && (!audioTrack || audioTrack.readyState === 'ended')) {
-      try {
-        // Re-acquire fresh audio stream
-        const newAudioStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-        audioTrack = newAudioStream.getAudioTracks()[0];
-
-        // Add to local stream (remove old dead ones first)
-        localStream.getAudioTracks().forEach(t => { t.stop(); localStream.removeTrack(t); });
-        localStream.addTrack(audioTrack);
-      } catch (e) {
-        console.error("Failed to acquire mic", e);
-        return;
-      }
-    }
-
-    if (audioTrack) {
-      audioTrack.enabled = newStatus;
+    // Simply toggle 'enabled' status of existing tracks.
+    // Do not attempt to add/remove tracks here to avoid renegotiation conflicts with video/screen share.
+    if (audioTracks.length > 0) {
+      const newStatus = !isMicOn;
+      audioTracks.forEach(t => t.enabled = newStatus);
       setIsMicOn(newStatus);
 
-      // Update Peer Connections with the new/active track
-      for (const [recipientId, pc] of peerConnectionsRef.current.entries()) {
-        const sender = pc.getSenders().find(s => s.track?.kind === 'audio');
-        if (sender) {
-          sender.replaceTrack(audioTrack);
-        } else {
-          // If no audio sender exists yet, add it? (Usually handled by setup, but robust check)
-          pc.addTrack(audioTrack, localStream);
-        }
+      // Force renegotiation to ensure audio transmission starts immediately
+      // This fixes the issue where audio would only start after screen sharing (which triggers renegotiation)
+      if (newStatus) {
+        await renegotiate();
       }
+    } else {
+      console.warn("No audio tracks found to toggle.");
     }
   };
 
@@ -1000,20 +980,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         const videoTrack = stream.getVideoTracks()[0];
 
         // If we were screen sharing, stop it first (mutually exclusive video track for simplicity)
-        // If we were screen sharing, stop it first.
-        // Screen sharing MUTUALLY EXCLUDES Camera usually in this simple implementations
         if (isScreenSharing) {
-          // Stop the screen track
-          localStream.getVideoTracks().forEach(t => {
-            if (t.label.includes('screen') || t.getSettings().displaySurface) {
-              t.stop();
-              localStream.removeTrack(t);
-            }
-          });
-          setIsScreenSharing(false);
-
-          // We are about to add the camera track below, so we don't need to do extra cleanup here
-          // other than ensuring the state is consistent.
+          await stopScreenSharing();
         }
 
         localStream.addTrack(videoTrack);
@@ -1206,6 +1174,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       setLocalStream(new MediaStream(localStream.getTracks()));
+
+      // 4. Critical: Ensure Audio is still flowing if Mic was ON.
+      // Sometimes renegotiation after track removal causes state sync issues.
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack && isMicOn) {
+        audioTrack.enabled = true; // Force re-enable
+      }
 
       // Force renegotiation to ensure peers handle the track removal correctly
       await renegotiate();
