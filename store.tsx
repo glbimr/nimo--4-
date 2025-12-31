@@ -210,7 +210,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       const { data: taskData } = await supabase.from('tasks').select('*');
       if (taskData) setTasks(taskData.map(mapTaskFromDB));
 
-      const { data: msgData } = await supabase.from('decrypted_messages').select('*').order('timestamp', { ascending: true });
+      const { data: msgData } = await supabase.from('messages').select('*').order('timestamp', { ascending: true });
       if (msgData) setMessages(msgData.map(mapMessageFromDB));
 
       const { data: groupData } = await supabase.from('groups').select('*');
@@ -275,14 +275,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async payload => {
         if (payload.eventType === 'INSERT') {
-          // Fetch the decrypted message from the view since the real-time payload is encrypted
-          const { data } = await supabase.from('decrypted_messages').select('*').eq('id', payload.new.id).single();
-          if (data) {
-            setMessages(prev => {
-              if (prev.some(m => m.id === data.id)) return prev;
-              return [...prev, mapMessageFromDB(data)];
-            });
-          }
+          const newMessage = mapMessageFromDB(payload.new);
+          setMessages(prev => {
+            if (prev.some(m => m.id === newMessage.id)) return prev;
+            return [...prev, newMessage];
+          });
         }
         // Handle UPDATE (e.g. Reads)
         if (payload.eventType === 'UPDATE') {
@@ -662,19 +659,20 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }).catch(err => console.error("Broadcast failed", err));
     }
 
-    // 3. Persist to DB (Encrypted)
-    const { error } = await supabase.rpc('send_encrypted_message', {
-      p_id: optimisticMsg.id,
-      p_sender_id: optimisticMsg.senderId,
-      p_recipient_id: optimisticMsg.recipientId,
-      p_text: optimisticMsg.text,
-      p_type: optimisticMsg.type,
-      p_attachments: optimisticMsg.attachments,
-      p_timestamp: optimisticMsg.timestamp
+    // 3. Persist to DB (Plain Text)
+    const { error } = await supabase.from('messages').insert({
+      id: optimisticMsg.id,
+      sender_id: optimisticMsg.senderId,
+      recipient_id: optimisticMsg.recipientId,
+      text: optimisticMsg.text,
+      timestamp: optimisticMsg.timestamp,
+      type: optimisticMsg.type,
+      attachments: optimisticMsg.attachments,
+      is_read: false
     });
 
     if (error) {
-      console.error("Error sending encrypted message:", error);
+      console.error("Error sending message:", error);
       return;
     }
   };
