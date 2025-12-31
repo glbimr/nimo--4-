@@ -420,20 +420,19 @@ interface ListViewProps {
 }
 
 const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleColumns }) => {
-
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex-1 flex flex-col min-h-0">
       <div className="overflow-auto custom-scrollbar flex-1">
         <table className="w-full text-left text-sm border-collapse">
           <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 z-10">
             <tr>
-              <th className="px-6 py-4 font-semibold text-slate-700 w-1/3">Title</th>
-              {visibleColumns.includes('status') && <th className="px-6 py-4 font-semibold text-slate-700">Status</th>}
-              {visibleColumns.includes('priority') && <th className="px-6 py-4 font-semibold text-slate-700">Priority</th>}
-              {visibleColumns.includes('category') && <th className="px-6 py-4 font-semibold text-slate-700">Category</th>}
-              {visibleColumns.includes('assignee') && <th className="px-6 py-4 font-semibold text-slate-700">Assignee</th>}
-              {visibleColumns.includes('dueDate') && <th className="px-6 py-4 font-semibold text-slate-700">Due Date</th>}
-              {visibleColumns.includes('created') && <th className="px-6 py-4 font-semibold text-slate-700 text-right">Created</th>}
+              <th className="px-4 md:px-6 py-4 font-semibold text-slate-700 w-1/3">Title</th>
+              {visibleColumns.includes('status') && <th className="px-4 md:px-6 py-4 font-semibold text-slate-700">Status</th>}
+              {visibleColumns.includes('priority') && <th className="px-6 py-4 font-semibold text-slate-700 hidden md:table-cell">Priority</th>}
+              {visibleColumns.includes('category') && <th className="px-6 py-4 font-semibold text-slate-700 hidden md:table-cell">Category</th>}
+              {visibleColumns.includes('assignee') && <th className="px-4 md:px-6 py-4 font-semibold text-slate-700">Assignee</th>}
+              {visibleColumns.includes('dueDate') && <th className="px-4 md:px-6 py-4 font-semibold text-slate-700">Due Date</th>}
+              {visibleColumns.includes('created') && <th className="px-6 py-4 font-semibold text-slate-700 text-right hidden md:table-cell">Created</th>}
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -447,9 +446,9 @@ const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleCo
                   onClick={() => onEditTask(task)}
                   className="hover:bg-slate-50 transition-colors cursor-pointer group"
                 >
-                  <td className="px-6 py-3">
+                  <td className="px-4 md:px-6 py-3">
                     <div className="flex items-center">
-                      <div className="font-medium text-slate-800">{task.title}</div>
+                      <div className="font-medium text-slate-800 line-clamp-2 md:line-clamp-1">{task.title}</div>
                     </div>
                     {task.subtasks.length > 0 && (
                       <div className="text-xs text-slate-400 mt-1 flex items-center">
@@ -459,7 +458,7 @@ const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleCo
                     )}
                   </td>
                   {visibleColumns.includes('status') && (
-                    <td className="px-6 py-3">
+                    <td className="px-4 md:px-6 py-3">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${task.status === TaskStatus.TODO ? 'bg-slate-100 text-slate-600 border-slate-200' :
                         task.status === TaskStatus.IN_PROGRESS ? 'bg-blue-50 text-blue-700 border-blue-100' :
                           'bg-green-50 text-green-700 border-green-100'
@@ -468,12 +467,12 @@ const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleCo
                           task.status === TaskStatus.IN_PROGRESS ? 'bg-blue-500' :
                             'bg-green-500'
                           }`}></span>
-                        {task.status === TaskStatus.TODO ? 'To Do' : task.status === TaskStatus.IN_PROGRESS ? 'In Progress' : 'Done'}
+                        <span className="whitespace-nowrap">{task.status === TaskStatus.TODO ? 'To Do' : task.status === TaskStatus.IN_PROGRESS ? 'In Progress' : 'Done'}</span>
                       </span>
                     </td>
                   )}
                   {visibleColumns.includes('priority') && (
-                    <td className="px-6 py-3">
+                    <td className="px-6 py-3 hidden md:table-cell">
                       <span className={`inline-flex px-2 py-0.5 rounded text-xs capitalize ${task.priority === 'high' ? 'text-red-700 bg-red-50' :
                         task.priority === 'medium' ? 'text-orange-700 bg-orange-50' :
                           'text-slate-600 bg-slate-100'
@@ -483,39 +482,39 @@ const ListView: React.FC<ListViewProps> = ({ tasks, users, onEditTask, visibleCo
                     </td>
                   )}
                   {visibleColumns.includes('category') && (
-                    <td className="px-6 py-3">
+                    <td className="px-6 py-3 hidden md:table-cell">
                       <div className="flex items-center">
                         <span className={`w-6 h-6 rounded flex items-center justify-center mr-2 ${categoryConfig.color.split(' ')[0]} ${categoryConfig.color.split(' ')[1]}`}>
                           <categoryConfig.icon size={14} />
                         </span>
-                        <span className="text-slate-600 text-sm">{categoryConfig.label}</span>
+                        <span className="text-slate-600 text-sm whitespace-nowrap">{categoryConfig.label}</span>
                       </div>
                     </td>
                   )}
                   {visibleColumns.includes('assignee') && (
-                    <td className="px-6 py-3">
+                    <td className="px-4 md:px-6 py-3">
                       {assignee ? (
                         <div className="flex items-center">
-                          <img src={assignee.avatar} className="w-6 h-6 rounded-full mr-2 border border-slate-200" />
-                          <span className="text-sm text-slate-700">{assignee.name}</span>
+                          <img src={assignee.avatar} className="w-6 h-6 rounded-full mr-2 border border-slate-200 shrink-0" />
+                          <span className="text-sm text-slate-700 truncate max-w-[80px] md:max-w-none">{assignee.name}</span>
                         </div>
                       ) : (
-                        <span className="text-sm text-slate-400 italic">Unassigned</span>
+                        <span className="text-sm text-slate-400 italic whitespace-nowrap">Unassigned</span>
                       )}
                     </td>
                   )}
                   {visibleColumns.includes('dueDate') && (
-                    <td className="px-6 py-3">
+                    <td className="px-4 md:px-6 py-3">
                       {task.dueDate ? (
-                        <div className="flex items-center text-slate-600">
-                          <Calendar size={14} className="mr-1.5 text-slate-400" />
-                          {new Date(task.dueDate).toLocaleDateString()}
+                        <div className="flex items-center text-slate-600 whitespace-nowrap">
+                          <Calendar size={14} className="mr-1.5 text-slate-400 hidden md:block" />
+                          <span className="text-xs md:text-sm">{new Date(task.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                         </div>
                       ) : <span className="text-slate-300">-</span>}
                     </td>
                   )}
                   {visibleColumns.includes('created') && (
-                    <td className="px-6 py-3 text-right text-slate-500 text-xs font-mono">
+                    <td className="px-6 py-3 text-right text-slate-500 text-xs font-mono hidden md:table-cell">
                       {new Date(task.createdAt).toLocaleDateString()}
                     </td>
                   )}
@@ -1700,25 +1699,27 @@ export const KanbanBoard: React.FC = () => {
         </div>
 
         {/* Filters Bar */}
-        <div className="flex flex-col md:flex-row gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm overflow-x-auto">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search tasks..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
-            />
+        <div className="flex flex-col space-y-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm">
+          <div className="flex flex-col md:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search tasks..."
+                value={searchTerm}
+                onChange={e => setSearchTerm(e.target.value)}
+                className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"
+              />
+            </div>
           </div>
 
-          <div className="flex items-center space-x-2 shrink-0">
-            <SlidersHorizontal size={16} className="text-slate-400 ml-2 mr-1 hidden md:block" />
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0 scrollbar-hide -mx-1 px-1">
+            <SlidersHorizontal size={16} className="text-slate-400 shrink-0 hidden md:block" />
 
             <select
               value={filterProject}
               onChange={e => setFilterProject(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100"
+              className="shrink-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100"
             >
               <option value="all">All Projects</option>
               {projects.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -1727,7 +1728,7 @@ export const KanbanBoard: React.FC = () => {
             <select
               value={filterCategory}
               onChange={e => setFilterCategory(e.target.value as any)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100"
+              className="shrink-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100"
             >
               <option value="all">All Categories</option>
               {Object.values(TaskCategory).map(c => <option key={c} value={c}>{CATEGORY_STYLES[c].label}</option>)}
@@ -1736,7 +1737,7 @@ export const KanbanBoard: React.FC = () => {
             <select
               value={filterAssignee}
               onChange={e => setFilterAssignee(e.target.value)}
-              className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100 max-w-[150px]"
+              className="shrink-0 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100"
             >
               <option value="all">All Assignees</option>
               <option value="me">Assigned to Me</option>
@@ -1749,9 +1750,9 @@ export const KanbanBoard: React.FC = () => {
 
       {/* Content Area */}
       {viewMode === 'board' ? (
-        <div className="flex-1 overflow-x-auto overflow-y-hidden">
-          <div className="flex h-full gap-6 min-w-[1000px] md:min-w-0">
-            <div className="flex-1 min-w-[300px] h-full">
+        <div className="flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory">
+          <div className="flex h-full gap-4 md:gap-6 px-1 md:px-0">
+            <div className="flex-1 min-w-[85vw] md:min-w-[300px] h-full snap-center">
               <KanbanColumn
                 status={TaskStatus.TODO}
                 title="To Do"
@@ -1766,7 +1767,7 @@ export const KanbanBoard: React.FC = () => {
                 onUpdateTask={updateTask}
               />
             </div>
-            <div className="flex-1 min-w-[300px] h-full">
+            <div className="flex-1 min-w-[85vw] md:min-w-[300px] h-full snap-center">
               <KanbanColumn
                 status={TaskStatus.IN_PROGRESS}
                 title="In Progress"
@@ -1781,7 +1782,7 @@ export const KanbanBoard: React.FC = () => {
                 onUpdateTask={updateTask}
               />
             </div>
-            <div className="flex-1 min-w-[300px] h-full">
+            <div className="flex-1 min-w-[85vw] md:min-w-[300px] h-full snap-center">
               <KanbanColumn
                 status={TaskStatus.DONE}
                 title="Done"
